@@ -1,0 +1,25 @@
+Für Objekte eine Art Location Attribut implementieren
+    > Wenn ein Objekt den Bildschirmrand erreicht, wird es grundsätzlich in die neue Location geladen
+    > Es gibt natürlich Ausnahmen
+Waffen implementieren
+    > raketen/explosionen implementieren
+Kamera implementieren
+    > Illusion, dass eine Kamera dem Spieler folgt
+    > Größere Spielwelt dadurch simulieren
+Pick ups implementieren
+
+
+Bosse implementieren
+
+Stun mechaniken
+    > Gegner attribute die Bewegung steuern randomisen
+
+Gegner KI
+
+
+Sound
+    > Einen Soundtrack der im Loop läuft
+    > Sound Effekte allgemein
+        >> Schießen
+        >> Treffer
+        >> Explosionen
