@@ -699,7 +699,7 @@ class Game:
             item_template = items[0]
 
         new_item = item_template.clone()
-        self.add_figure(new_item)
+        self.add_item(new_item)
         new_item.override_position(spawn_position)
 
     def is_nearing(self, threshold): # unused
@@ -730,17 +730,38 @@ class Game:
         offset_x = x2 - x1
         offset_y = y2 - y1
 
-        if mask1.overlap(mask2, (offset_x, offset_y)):
-            return True
+        # Check if the masks overlap
+        overlap = mask1.overlap(mask2, (offset_x, offset_y))
 
-    def player_enemy_collision_handler(self):
-        for i, figure1 in enumerate(self.figures):
-            for j, figure2 in enumerate(self.figures[i + 1:]):
-                if figure1.type_ == "player" and figure2.type_ == "enemy":
-                    # Check collision between player and enemy
-                    if self.check_collision(figure1, figure2):
-                        print(f"Collision detected between {figure1.name} and {figure2.name}")
-                        # TODO mechanic that prevents "clipping"
+        return overlap is not None
+
+
+    def prevent_clipping(self, threshold=75):
+        for i, entity1 in enumerate(self.figures):
+            for j, entity2 in enumerate(self.figures[i + 1:]):
+                x1_pos, y1_pos = entity1.position
+                x2_pos, y2_pos = entity2.position
+
+                # Calculate the distance between the two entities
+                distance = math.sqrt((x2_pos - x1_pos) ** 2 + (y2_pos - y1_pos) ** 2)
+
+                # Check if the distance is less than the threshold
+                if distance < threshold:
+                    # Calculate the direction vector from entity1 to entity2
+                    dx = x2_pos - x1_pos
+                    dy = y2_pos - y1_pos
+
+                    # Normalize the direction vector to get the unit vector
+                    if distance != 0:  # Prevent division by zero
+                        dx /= distance
+                        dy /= distance
+
+                    # Move the entities apart by the threshold distance
+                    # Adjust positions based on the unit vector
+                    entity1.position[0] -= dx * (threshold - distance) / 2
+                    entity1.position[1] -= dy * (threshold - distance) / 2
+                    entity2.position[0] += dx * (threshold - distance) / 2
+                    entity2.position[1] += dy * (threshold - distance) / 2
 
     def player_enemy_projectile_collision_handler(self):
         for figure in self.figures:
@@ -799,10 +820,10 @@ class Game:
             dropped_items = figure.handle_drop()
             for dropped_item in dropped_items:
                 if dropped_item and len(pick_ups) < 10:
-                    self.add_figure(dropped_item)
+                    self.add_item(dropped_item)
                     dropped_item.override_position(figure.position)
                 if dropped_item and dropped_item.type_ == "gun_pick_up":
-                    self.add_figure(dropped_item)
+                    self.add_item(dropped_item)
                     dropped_item.override_position(figure.position)
 
             self.remove_figure(figure)
@@ -828,7 +849,7 @@ class Game:
             self.projectiles.remove(projectile)
 
     def collision_check_and_handling(self):
-        self.player_enemy_collision_handler()
+        self.prevent_clipping()
         self.player_enemy_projectile_collision_handler()
         self.remove_dead_figures_and_projectiles()
 
@@ -912,9 +933,8 @@ class Game:
                     current_weapon = npc.weapons[npc.weapon_index]
 
                     # Check if current weapon is overheated
-                    if current_weapon.heat >= current_weapon.max_heat - 0.5:  # the passive cooling of the weapons prevents the weapon.heat to reach the max_heat
-                        # print(f"{current_weapon.name} used by {current_weapon.owner.name} overheated, switching weapon")
-                        # Rotate to the next weapon in the list
+                    if current_weapon.heat >= current_weapon.max_heat - 0.5:
+
                         npc.change_weapon()
 
                     self.handle_fire_effects(npc)
@@ -1192,13 +1212,15 @@ class Game:
 
                     if figure.type_ in ["enemy", "boss_enemy"]:
                         figure.draw_health_bar(self.window)
-
-                    if figure.type_ in ["pick_up", "gun_pick_up"]:
-                        figure.turn_item(5)
-                        if figure.item_in_range(target=self.player):
-                            # print(figure.item_in_range(target=self.player))
-                            figure.apply_effect(self.player)
-                            self.remove_figure(figure)
+                # handle item spawn and despawn/effect mechanics separately, so they don't get included in the
+                # clipping prevention resulting in "evading" the player when trying to pick them up
+                for item in self.items:
+                    item.draw_figure(self.window)
+                    item.turn_item(5)
+                    if item.item_in_range(target=self.player):
+                        # print(figure.item_in_range(target=self.player))
+                        item.apply_effect(self.player)
+                        self.remove_item(item)
 
                 for figure in self.figures:
                     if figure.type_ in ["enemy", "boss_enemy", "player"]:

@@ -1,6 +1,7 @@
 bababooey: 42979
 player: 15400
 Tobi: 8475
+fart: 7490
 Daniel: 5400
 GAMER: 4950
 Maxi: 1365
