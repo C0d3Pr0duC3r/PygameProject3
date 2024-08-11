@@ -203,6 +203,7 @@ class Game:
         self.bosses_destroyed = 0
         self.projectiles = []
         self.items = []
+        self.item_templates = []
         self.mouse_pos = None
         self.score = 0
         self.score_additon = 0
@@ -265,9 +266,9 @@ class Game:
         # When the boss is destroyed, open the shop so the player can buy upgrades
         elif current_stage.stage_type == "boss_stage":
             if self.bosses_destroyed >= current_stage.bosses_destroyed_threshold:
-                print("line 267 reached")
+
                 if time.time() - self.time_when_last_boss_was_killed > 5:
-                    print("line 270 reached")
+
                     self.stage_index += 1
                     # after the boss is killed the player enters the shop
                     self.change_state("shop")
@@ -563,6 +564,10 @@ class Game:
     def add_figure(self, *figures):
         for figure in figures:
             self.figures.append(figure)
+
+    def add_item_template(self, *items):
+        for item in items:
+            self.item_templates.append(item)
 
     def add_item(self, *items):
         for item in items:
@@ -923,7 +928,7 @@ class Game:
 
             projectile.behave()
             if projectile.life_time:
-                projectile.check_lifetime()  # TODO doesnt work like intended
+                projectile.check_lifetime()
 
             # Draw the projectile on the screen
             projectile.draw_projectile(self.window)
@@ -932,6 +937,8 @@ class Game:
             if projectile.projectile_max_reach():
                 # Mark the projectile for removal from the game
                 projectile.marked_for_death = True
+
+
 
     def npc_behaviour_manager(self): # TODO maybe implement in-fighting or some npc that fights alongside the player
 
@@ -1129,11 +1136,11 @@ class Game:
                     # If player has no energy ammo anymore:
                     if self.player.ammo["energy_ammo"].current_ammo == 0:
                         # Check if there is an existing energy ammo item on the screen
-                        energy_ammo_exists = any(figure.name == "Energy Ammo_pick up" for figure in self.figures)
-
+                        energy_ammo_exists = any(item.name == "Energy_Ammo_pick_up" for item in self.items)
+                        print(f"energyammo exists:{energy_ammo_exists}")
                         # If there is no energy ammo item, spawn one
                         if not energy_ammo_exists:
-                            self.spawn_item(self.items[0], spawn_position=self.random_position_on_screen())
+                            self.spawn_item(self.item_templates[0], spawn_position=self.random_position_on_screen())
 
                     # Handle firing projectiles when left mouse button is held down
                     if left_mouse_held_down:

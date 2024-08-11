@@ -219,6 +219,7 @@ class Figure:
                  animation=None,
                  turn_speed=0,
                  acceleration=None,
+                 max_velocity=None,
                  velocity=0,
                  orientation=0,
                  color=(255, 255, 255),
@@ -238,6 +239,7 @@ class Figure:
         # Position and movement attributes
         self.position = list(position)
         self.velocity = velocity
+        self.max_velocity = max_velocity
         self.acceleration = acceleration
         self.orientation = orientation
         self.turn_speed = turn_speed
@@ -299,6 +301,7 @@ class Figure:
     def movement(self, direction):
         # The x and y limits are used here to prevent the player from leaving the screen
         if direction == "up":
+            # use self.acceleration until velocity accelerated to max_velocity
             self.position[1] -= self.velocity
         if direction == "down":
             self.position[1] += self.velocity
@@ -317,8 +320,8 @@ class Figure:
             modifier = 1
 
         # Calculate the change in x and y based on the angle and velocity
-        dx = self.velocity * math.sin(angle_in_radians)
-        dy = self.velocity * math.cos(angle_in_radians)
+        dx = self.max_velocity * math.sin(angle_in_radians)
+        dy = self.max_velocity * math.cos(angle_in_radians)
 
 
         if direction == "prograde":
@@ -693,6 +696,7 @@ class NPC(Figure):
             sprite_loader=self.sprite_loader,
             turn_speed=self.turn_speed,
             velocity=self.velocity,
+            max_velocity=self.max_velocity,
             orientation=self.orientation,
             reward=self.reward,
             color=self.color,
@@ -719,7 +723,7 @@ class NPC(Figure):
 
 
 class Projectile(Figure):
-    def __init__(self, name, damage, orientation, velocity, position, life_time=None, sprite_loader=None,
+    def __init__(self, name, damage, orientation, velocity, max_velocity, position, life_time=None, sprite_loader=None,
                  max_reach=None, max_pierce=None, animation=None):
 
         self.damage = damage
@@ -738,7 +742,7 @@ class Projectile(Figure):
             self.mask = pygame.mask.from_surface(self.sprite_loader.get_oriented_sprite(self.orientation))
             self.mask_image = self.mask.to_surface()
 
-        super().__init__(name, position, velocity=velocity, sprite_loader=sprite_loader, orientation=orientation,
+        super().__init__(name, position, velocity=velocity, max_velocity=max_velocity, sprite_loader=sprite_loader, orientation=orientation,
                          animation=animation)
 
         if self.sprite_loader:
@@ -809,8 +813,6 @@ class Projectile(Figure):
         else:  # If no sprite sheet is provided, draw a square
             self.update_rect()
             pygame.draw.rect(window, self.color, self.return_dimensions_and_position())
-
-
 
     def override_dimension(self, new_dimensions):
         self.dimensions = new_dimensions
@@ -1196,8 +1198,9 @@ class Weapon:
                 deviation = (-self.spread / 2) + (self.spread * random.random())
                 new_orientation = orientation + deviation
 
-                projectile = Projectile(self.name + "projectile", self.damage, new_orientation, self.velocity,
-                                        origin_position, self.sprite_loader, max_reach=self.max_reach,
+                projectile = Projectile(name=self.name + "projectile", damage=self.damage, orientation=new_orientation,
+                                        velocity=self.velocity, max_velocity=self.velocity,
+                                        position=origin_position, sprite_loader=self.sprite_loader, max_reach=self.max_reach,
                                         max_pierce=self.max_pierce, animation=self.animation)
 
                 if self.sprite_loader is None and self.projectile_dimensions:
@@ -1466,28 +1469,28 @@ aim = Cursor([0, 0], [20, 20], aim_path)
 
 scout_enemy = NPC(name="scout", position=[50, 50], hit_points=100, reward=50, radius=500,
                   sprite_loader=Sprite_sheet_loader_3d(scout_model, 100, 0.5),
-                  turn_speed=5, velocity=5, type_="enemy", sound_effects=None, animation=[explosion_a, portal_opening],
+                  turn_speed=5, max_velocity=5, type_="enemy", sound_effects=None, animation=[explosion_a, portal_opening],
                   weapon_switch_delay=1)
 
 brawler_enemy = NPC(name="brawler", position=[50, 50], hit_points=150, reward=100, radius=350,
               sprite_loader=Sprite_sheet_loader_3d(brawler_model, 100, 0.5),
-              turn_speed=5, velocity=3, type_="enemy", sound_effects=None, animation=[explosion_a, portal_opening])
+              turn_speed=5, max_velocity=3, type_="enemy", sound_effects=None, animation=[explosion_a, portal_opening])
 
-torus_enemy = NPC(name="Torus", type_="enemy", position=[50, 50], hit_points=200, reward=300, radius=500, velocity=3,
+torus_enemy = NPC(name="Torus", type_="enemy", position=[50, 50], hit_points=200, reward=300, radius=500, max_velocity=3,
                   turn_speed=5, sprite_loader=Sprite_sheet_loader_3d(torus_enemy_sprite, 100, 0.5), sound_effects=None,
                   animation=[explosion_a])
 
 mogus_enemy = NPC(name="Mogus", type_="boss_enemy", position=[50, 50], hit_points=900, reward=300, radius=500,
-                  velocity=4, turn_speed=7, sprite_loader=Sprite_sheet_loader_3d(mogus_spreader_model, 100), sound_effects=None,
+                  max_velocity=4, turn_speed=7, sprite_loader=Sprite_sheet_loader_3d(mogus_spreader_model, 100), sound_effects=None,
                   animation=[explosion_a, portal_opening], weapon_switch_delay=0.5)
 
 shredder_enemy = NPC(name="Shredder", type_="boss_enemy", position=[50, 50], hit_points=1000, reward=300, radius=500,
-                     velocity=4,
+                     max_velocity=4,
                      turn_speed=10, sprite_loader=Sprite_sheet_loader_3d(shredder_model, 100), sound_effects=None,
                      animation=[explosion_a, portal_opening], weapon_switch_delay=0.5)
 
 missile_mogus = NPC(name="missile_mogus", type_="boss_enemy", position=[50, 50], hit_points=800, reward=300, radius=500,
-                    velocity=3,
+                    max_velocity=3,
                     turn_speed=5, sprite_loader=Sprite_sheet_loader_3d(missile_mogus_model, 100, 1.3), sound_effects=None,
                     animation=[explosion_a, portal_opening], weapon_switch_delay=0.5)
 # ===============================
@@ -1522,7 +1525,7 @@ shield_item_template = Item(name="Shield_pick up", type_="pick_up", position=[10
                             turn_speed=5,
                             chance=3)
 
-energy_ammo_item_template = Item(name="Energy Ammo_pick up", type_="pick_up", position=[100, 100],
+energy_ammo_item_template = Item(name="Energy_Ammo_pick_up", type_="pick_up", position=[100, 100],
                                  sprite_loader=Sprite_sheet_loader_3d(energy_ammo_model, 100),
                                  pick_up_distance=50,
                                  effect_function=Item.give_energy_ammo,
@@ -1740,7 +1743,7 @@ enemy_rail_gun = Weapon("enemy rail gun", damage=100, velocity=30, cooldown=0.5,
 # adding stuff to figures
 # ===============================
 
-player.add_weapon(basic_blaster)
+player.add_weapon(basic_blaster, missile_launcher)
 
 scout_enemy.add_weapon(enemy_blaster)
 

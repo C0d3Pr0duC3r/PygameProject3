@@ -13,13 +13,13 @@ resource_logging = False
 game = Game("sheesh", [screen_dimensions[0]-variable, screen_dimensions[1]-variable_2], cursor=aim,
             background_image_path=background_picture_path, scale_background=True, player_template=player,
             enemies=[scout_enemy, brawler_enemy, torus_enemy], bosses=[mogus_enemy, shredder_enemy, missile_mogus],
-            game_font=font_path, player_unkillable=True, debug_mode=True, fps=60)
+            game_font=font_path, player_unkillable=False, debug_mode=False, fps=60)
 
 """for boss in game.bosses:
     print(type(boss))
 input("press enter to continue")"""
 
-game.add_item(energy_ammo_item_template, healing_item_template)
+game.add_item_template(energy_ammo_item_template, healing_item_template)
 
 game.state = "playing"
 
