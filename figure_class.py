@@ -298,13 +298,13 @@ class Figure:
 
     def movement(self, direction):
         # The x and y limits are used here to prevent the player from leaving the screen
-        if direction == "up" and (self.y_limit is None or self.position[1] - self.velocity >= 0):
+        if direction == "up":
             self.position[1] -= self.velocity
-        if direction == "down" and (self.y_limit is None or self.position[1] + self.velocity <= self.y_limit):
+        if direction == "down":
             self.position[1] += self.velocity
-        if direction == "left" and (self.x_limit is None or self.position[0] - self.velocity >= 0):
+        if direction == "left":
             self.position[0] -= self.velocity
-        if direction == "right" and (self.x_limit is None or self.position[0] + self.velocity <= self.x_limit):
+        if direction == "right":
             self.position[0] += self.velocity
         self.update_rect()
 
@@ -320,9 +320,6 @@ class Figure:
         dx = self.velocity * math.sin(angle_in_radians)
         dy = self.velocity * math.cos(angle_in_radians)
 
-        # Store the current position
-        current_x = self.position[0]
-        current_y = self.position[1]
 
         if direction == "prograde":
             # Update the position values
@@ -332,12 +329,7 @@ class Figure:
             self.position[0] -= dx * modifier
             self.position[1] += dy * modifier
 
-        # Check if the new positions are within the limits
-        if not (self.x_limit is None or (0 <= self.position[0] <= self.x_limit)):
-            self.position[0] = current_x
 
-        if not (self.y_limit is None or (0 <= self.position[1] <= self.y_limit)):
-            self.position[1] = current_y
 
         # Update the rect or any other attributes based on the new position
         self.update_rect()

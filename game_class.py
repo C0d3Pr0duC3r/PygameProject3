@@ -735,6 +735,15 @@ class Game:
 
         return overlap is not None
 
+    def check_boundary(self, entity):
+        if entity.position[0] > entity.x_limit:
+            entity.position[0] = entity.x_limit
+        if entity.position[0] < 0:
+            entity.position[0] = 0
+        if entity.position[1] > entity.y_limit:
+            entity.position[1] = entity.y_limit
+        if entity.position[1] < 0:
+            entity.position[1] = 0
 
     def prevent_clipping(self, threshold=75):
         for i, entity1 in enumerate(self.figures):
@@ -893,6 +902,7 @@ class Game:
         if mode == "thrust_vector":
             if keys[pygame.K_a]:
                 player.apply_thrust("prograde", "normal")
+
 
     def handle_fire_effects(self, character, angle=None):
         if angle is not None:  # If an angle is provided (for the player)
@@ -1198,34 +1208,40 @@ class Game:
                     if self.debug_mode:
                         self.player.debug_visuals(self.window, frame=self.frame_counter)
 
-                # Draw NPCs and other figures
+                # Handle NPCs, players, and their interactions
                 for figure in self.figures:
                     figure.draw_figure(self.window)
+
                     if self.debug_mode:
                         figure.debug_visuals(self.window, frame=self.frame_counter)
 
-                    if enemy_figures and current_player_weapon.type_ == "homing" and self.player.radar_active:
+                    # Draw health bars for enemies and bosses
+                    if figure.type_ in ["enemy", "boss_enemy"]:
+                        figure.draw_health_bar(self.window)
+
+                    # Handle weapon cooldowns for relevant figures
+                    if figure.type_ in ["enemy", "boss_enemy", "player"]:
+                        for weapon in figure.weapons:
+                            weapon.cool_down()
+
+                    # Handle homing weapon targeting
+                    if figure.type_ == "player" and current_player_weapon.type_ == "homing" and self.player.radar_active:
+                        # Draw locking markers for enemies
                         self.player.draw_locking_markers(enemy_figures, self.window)
 
                         if current_player_weapon.locked_target:
                             self.player.draw_locked_target_marker(current_player_weapon.locked_target, self.window)
 
-                    if figure.type_ in ["enemy", "boss_enemy"]:
-                        figure.draw_health_bar(self.window)
-                # handle item spawn and despawn/effect mechanics separately, so they don't get included in the
-                # clipping prevention resulting in "evading" the player when trying to pick them up
+                    self.check_boundary(figure)
+
+                # Handle item spawn and despawn/effect mechanics separately
                 for item in self.items:
                     item.draw_figure(self.window)
                     item.turn_item(5)
+
                     if item.item_in_range(target=self.player):
-                        # print(figure.item_in_range(target=self.player))
                         item.apply_effect(self.player)
                         self.remove_item(item)
-
-                for figure in self.figures:
-                    if figure.type_ in ["enemy", "boss_enemy", "player"]:
-                        for weapon in figure.weapons:
-                            weapon.cool_down()
 
                 # animation handling
                 self.animation_handler()
