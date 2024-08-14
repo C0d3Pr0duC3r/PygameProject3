@@ -740,7 +740,7 @@ class Game:
 
         return overlap is not None
 
-    def check_boundary(self, entity):
+    def check_boundary(self, entity): #TODO change the limit to be whatever the screen is
         if entity.position[0] > entity.x_limit:
             entity.position[0] = entity.x_limit
         if entity.position[0] < 0:

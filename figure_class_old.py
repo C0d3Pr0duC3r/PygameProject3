@@ -321,62 +321,92 @@ class Entity:
 
 
 class Figure:
-    def __init__(self, name, position, **kwargs):
+    def __init__(self,
+                 name,
+                 position,
+                 coins=0,
+                 sound_effects=None,
+                 shield=None,
+                 shield_cap=None,
+                 hit_points=None,
+                 hit_points_cap=None,
+                 shield_recharge_rate=None,
+                 dimensions=[5, 5],
+                 sprite_loader=None,
+                 animation=None,
+                 turn_speed=0,
+                 acceleration=None,
+
+                 velocity=0,
+                 orientation=0,
+                 color=(255, 255, 255),
+                 y_limit=None,
+                 x_limit=None,
+                 no_clip=False,
+                 type_="standard",
+                 hit_point_overcharge=None,
+                 shield_overcharge=None,
+                 available_upgrades=None,
+                 weapon_switch_delay=None):
+
         # Identity attributes
         self.name = name
-        self.type_ = kwargs.get('type_', 'standard')
+        self.type_ = type_
 
         # Position and movement attributes
         self.position = list(position)
-        self.velocity = kwargs.get('velocity', 0)
-        self.acceleration = kwargs.get('acceleration', 0)
-        self.orientation = kwargs.get('orientation', 0)
-        self.turn_speed = kwargs.get('turn_speed', 0)
-        self.y_limit = kwargs.get('y_limit', None)
-        self.x_limit = kwargs.get('x_limit', None)
+        self.velocity = velocity
+        self.acceleration = acceleration
+        self.orientation = orientation
+        self.turn_speed = turn_speed
+        """self.center_pos = [position[0] - self.dimensions[0] // 2, position[1] - self.dimensions[1] // 2]"""
+        self.y_limit = y_limit
+        self.x_limit = x_limit
 
         # Visual attributes
-        self.dimensions = kwargs.get('dimensions', [5, 5])
-        self.color = kwargs.get('color', (255, 255, 255))
-        self.animation = kwargs.get('animation', None)
-        self.sprite_loader = kwargs.get('sprite_loader', None)
+        self.dimensions = dimensions
+        self.color = color
+        self.animation = animation
+        self.sprite_loader = sprite_loader
         self.rect = pygame.Rect(self.return_dimensions_and_position())
-        if self.sprite_loader:
-            self.mask = pygame.mask.from_surface(self.sprite_loader.get_oriented_sprite(self.orientation))
+        if sprite_loader:
+            self.mask = pygame.mask.from_surface(sprite_loader.get_oriented_sprite(self.orientation))
             self.mask_image = self.mask.to_surface()
         else:
             self.mask = pygame.mask.from_surface(pygame.Surface(self.dimensions))
             self.mask_image = self.mask.to_surface()
 
         # Health and defense attributes
-        self.hit_points = kwargs.get('hit_points', None)
-        self.shield = kwargs.get('shield', None)
-        self.shield_cap = kwargs.get('shield_cap', None)
-        self.hit_points_cap = kwargs.get('hit_points_cap', None)
-        self.shield_recharge_rate = kwargs.get('shield_recharge_rate', None) / 60 if kwargs.get(
-            'shield_recharge_rate') else None
-        self.shield_recharge_delay = kwargs.get('shield_recharge_delay', 4)
+        self.hit_points = hit_points
+        self.shield = shield
+        self.shield_cap = shield_cap
+        self.hit_points_cap = hit_points_cap
+        if hit_point_overcharge:
+            self.hit_point_overcharge = hit_point_overcharge
+        if shield_overcharge:
+            self.shield_overcharge = shield_overcharge
         self.last_got_hit_time = 0
-        self.hit_point_overcharge = kwargs.get('hit_point_overcharge', None)
-        self.shield_overcharge = kwargs.get('shield_overcharge', None)
+        self.shield_recharge_delay = 4
+        if shield_recharge_rate:
+            self.shield_recharge_rate = shield_recharge_rate / 60
 
         # Weapons and combat attributes
         self.weapons = []
         self.weapon_index = 0
-        self.sound_effects = kwargs.get('sound_effects', None)
-        self.weapon_switch_delay = kwargs.get('weapon_switch_delay', None)
+        self.sound_effects = sound_effects
+        self.weapon_switch_delay = weapon_switch_delay
         self.last_weapon_switch_time = 0
 
+
         # Economy attributes
-        self.coins = kwargs.get('coins', 0)
+        self.coins = coins
 
         # Miscellaneous attributes
-        self.available_upgrades = kwargs.get('available_upgrades', None)
-        self.no_clip = kwargs.get('no_clip', False)
+        self.available_upgrades = available_upgrades
+        self.no_clip = no_clip
         self.marked_for_death = False
-        self.abilities = []  # Future use: create abilities like "phase jump" or dash
+        self.abilities = []  # TODO create abilities like "phase jump" or in other words a dash...
 
-    # universal figure method
     def rotate_figure(self, direction):
         # Rotate animation
         if direction == "left":
@@ -384,7 +414,6 @@ class Figure:
         elif direction == "right":
             self.orientation += self.turn_speed
 
-    # universal figure method
     def movement(self, direction):
         # The x and y limits are used here to prevent the player from leaving the screen
         if direction == "up":
@@ -398,7 +427,6 @@ class Figure:
             self.position[0] += self.velocity
         self.update_rect()
 
-    # method for projectiles, npcs and player
     def apply_thrust(self, direction, mode):
         if mode == "normal":
             angle_in_radians = math.radians(self.orientation)
@@ -425,7 +453,6 @@ class Figure:
         # Update the rect or any other attributes based on the new position
         self.update_rect()
 
-    # method for projectiles, npcs and player
     def get_hit(self, damage):
 
         self.last_got_hit_time = time.time()  # get the time of the hit
@@ -457,7 +484,6 @@ class Figure:
             except TypeError:
                 print(TypeError)
 
-    # method for npcs and player
     def get_healed(self, amount):
         if self.sound_effects:
             healing_sound_effect = self.sound_effects[1]
@@ -467,20 +493,13 @@ class Figure:
             if self.hit_points > self.hit_points_cap:
                 self.hit_points = self.hit_points_cap
 
-    # method for npcs and player
     def get_shield(self, amount):
         self.shield += amount
         if self.shield_cap:
             if self.shield > self.shield_cap:
                 self.shield = self.shield_cap
 
-    # method for player
     def hit_points_and_shield_dynamic(self):
-
-        """
-        handles the shield recharge delay by getting the time the last hit received
-        reduces the health and shield overcharge according to playerstats over time back to normal
-        """
 
         current_time = time.time()
 
@@ -493,11 +512,9 @@ class Figure:
         if self.shield > self.shield_overcharge + 1:
             self.shield -= 10 / 60
 
-    # method for player
     def get_coin(self):
         self.coins += 1
 
-    # method for player
     def purchase_upgrade(self, upgrade):
         if self.coins >= upgrade.cost:
             self.coins -= upgrade.cost
@@ -505,14 +522,13 @@ class Figure:
         else:
             print("Not enough coins!")  # This can be replaced with a more advanced feedback system.
 
-    """def draw_hitpoints(self, window):
+    def draw_hitpoints(self, window):
         hit_points_font = pygame.font.Font(None, 64)
         hit_points_surface = hit_points_font.render(str(self.hit_points), True, (255, 0, 0))
         hit_points_rect = hit_points_surface.get_rect(center=(self.position[0] + 70, self.position[1]))
         window.blit(hit_points_surface, hit_points_rect)
-        pygame.display.update()"""
+        pygame.display.update()
 
-    # universal figure method
     def return_dimensions_and_position(self):
         # the // operation ensures, that the center of the rect is used as position of the object
         dimensions = (
@@ -520,19 +536,16 @@ class Figure:
         self.dimensions[1])
         return dimensions
 
-    # method for player
     def increase_ammo(self, ammo_key, amount):
         current_ammo = self.ammo[ammo_key].current_ammo + amount
         # Ensure the ammo doesn't exceed the max limit
         current_ammo = min(self.ammo[ammo_key].max, current_ammo)
         self.ammo[ammo_key] = self.ammo[ammo_key]._replace(current_ammo=current_ammo)
 
-    # method for player
     def add_weapon(self, *weapons):
         for weapon in weapons:
             self.weapons.append(weapon)
 
-    # method for player and npcs as well as projectiles that spawn "shrapnel"
     def offset_spawn_position(self):  # so you don't shoot yourself
         angle_in_radians = math.radians(self.orientation)
 
@@ -546,7 +559,6 @@ class Figure:
 
         return [new_x, new_y]
 
-    # method for player and npcs
     def trigger_pull(self):
         current_weapon = self.weapons[self.weapon_index]
         if self.weapons:
@@ -567,12 +579,10 @@ class Figure:
             print("No Weapon available")
             return None
 
-    # universal figure method
     def update_mask(self):
         self.mask = pygame.mask.from_surface(self.sprite_loader.get_oriented_sprite(self.orientation))
         self.mask_image = self.mask.to_surface()
 
-    # universal figure method
     def update_rect(self):
 
         """print(f"Position: {self.position}, Dimensions: {self.dimensions}")
@@ -583,16 +593,13 @@ class Figure:
         self.rect.y = self.position[1] - self.dimensions[1] // 2
         self.rect.width, self.rect.height = self.dimensions
 
-    # universal figure method
     def update_dimensions_from_sprite(self, sprite):
         self.dimensions = sprite.get_width(), sprite.get_height()
         self.update_rect()  # Update the rect based on the new dimensions
 
-    # universal figure method
     def override_position(self, new_position):
         self.position = new_position
 
-    # universal figure method
     def debug_visuals(self, window, frame):
         # Vary the hue between 0 and 1
         hue = (frame % 360) / 360.0  # Convert frame count to a value between 0 and 1
@@ -624,7 +631,6 @@ class Figure:
         name_rect = name_surface.get_rect(topright=self.position)
         window.blit(name_surface, name_rect)
 
-    # universal figure method
     def draw_figure(self, window):
         if self.sprite_loader:  # If a SpriteSheetLoader instance is available
             sprite = self.sprite_loader.get_oriented_sprite(self.orientation)
@@ -636,7 +642,6 @@ class Figure:
             self.update_rect()
             pygame.draw.rect(window, self.color, self.return_dimensions_and_position())
 
-    # universal figure method
     def clone(self):
         """Creates a copy of the Figure instance."""
 
@@ -1853,7 +1858,7 @@ enemy_rail_gun = Weapon("enemy rail gun", damage=100, velocity=30, cooldown=0.5,
 # adding stuff to figures
 # ===============================
 
-player.add_weapon(basic_blaster, missile_launcher)
+player.add_weapon(basic_blaster, debug_gun)
 
 scout_enemy.add_weapon(enemy_blaster)
 
