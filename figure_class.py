@@ -348,34 +348,6 @@ class Figure:
             self.mask = pygame.mask.from_surface(pygame.Surface(self.dimensions))
             self.mask_image = self.mask.to_surface()
 
-        # Health and defense attributes
-        self.hit_points = kwargs.get('hit_points', None)
-        self.shield = kwargs.get('shield', None)
-        self.shield_cap = kwargs.get('shield_cap', None)
-        self.hit_points_cap = kwargs.get('hit_points_cap', None)
-        self.shield_recharge_rate = kwargs.get('shield_recharge_rate', None) / 60 if kwargs.get(
-            'shield_recharge_rate') else None
-        self.shield_recharge_delay = kwargs.get('shield_recharge_delay', 4)
-        self.last_got_hit_time = 0
-        self.hit_point_overcharge = kwargs.get('hit_point_overcharge', None)
-        self.shield_overcharge = kwargs.get('shield_overcharge', None)
-
-        # Weapons and combat attributes
-        self.weapons = []
-        self.weapon_index = 0
-        self.sound_effects = kwargs.get('sound_effects', None)
-        self.weapon_switch_delay = kwargs.get('weapon_switch_delay', None)
-        self.last_weapon_switch_time = 0
-
-        # Economy attributes
-        self.coins = kwargs.get('coins', 0)
-
-        # Miscellaneous attributes
-        self.available_upgrades = kwargs.get('available_upgrades', None)
-        self.no_clip = kwargs.get('no_clip', False)
-        self.marked_for_death = False
-        self.abilities = []  # Future use: create abilities like "phase jump" or dash
-
     # universal figure method
     def rotate_figure(self, direction):
         # Rotate animation
@@ -398,119 +370,7 @@ class Figure:
             self.position[0] += self.velocity
         self.update_rect()
 
-    # method for projectiles, npcs and player
-    def apply_thrust(self, direction, mode):
-        if mode == "normal":
-            angle_in_radians = math.radians(self.orientation)
-            modifier = 0.5
-        elif mode == "strafe":
-            angle_in_radians = math.radians(self.orientation - 90)
-            modifier = 1
 
-        # Calculate the change in x and y based on the angle and velocity
-        dx = self.velocity * math.sin(angle_in_radians)
-        dy = self.velocity * math.cos(angle_in_radians)
-
-
-        if direction == "prograde":
-            # Update the position values
-            self.position[0] += dx
-            self.position[1] -= dy
-        if direction == "retrograde":
-            self.position[0] -= dx * modifier
-            self.position[1] += dy * modifier
-
-
-
-        # Update the rect or any other attributes based on the new position
-        self.update_rect()
-
-    # method for projectiles, npcs and player
-    def get_hit(self, damage):
-
-        self.last_got_hit_time = time.time()  # get the time of the hit
-
-        if self.sound_effects:
-            hit_sounds = self.sound_effects[0]  # Accessing the first dictionary
-            random_sound_key = random.choice(list(hit_sounds.keys()))
-            hit_sounds[random_sound_key].play()
-
-        if self.shield and self.shield > 0:
-            if damage > self.shield:
-                self.shield = 0
-                left_over_damage = damage - self.shield
-                self.hit_points -= left_over_damage
-                # TODO shield breaking = True -> stun the Figure for a few seconds or something
-            else:
-                self.shield -= damage
-        else:
-            try:
-                self.hit_points -= damage
-            except TypeError:
-                print(TypeError, "figure_class.py 372")
-
-        # Only set marked_for_death for non-Player instances
-        if not isinstance(self, Player):
-            try:
-                if self.hit_points <= 0:
-                    self.marked_for_death = True
-            except TypeError:
-                print(TypeError)
-
-    # method for npcs and player
-    def get_healed(self, amount):
-        if self.sound_effects:
-            healing_sound_effect = self.sound_effects[1]
-            healing_sound_effect["1"].play()
-        self.hit_points += amount
-        if self.hit_points_cap:
-            if self.hit_points > self.hit_points_cap:
-                self.hit_points = self.hit_points_cap
-
-    # method for npcs and player
-    def get_shield(self, amount):
-        self.shield += amount
-        if self.shield_cap:
-            if self.shield > self.shield_cap:
-                self.shield = self.shield_cap
-
-    # method for player
-    def hit_points_and_shield_dynamic(self):
-
-        """
-        handles the shield recharge delay by getting the time the last hit received
-        reduces the health and shield overcharge according to playerstats over time back to normal
-        """
-
-        current_time = time.time()
-
-        if current_time - self.last_got_hit_time > self.shield_recharge_delay:
-            if self.shield < self.shield_overcharge:
-                modified_recharge_rate = self.shield_recharge_rate * (1 - (self.shield / self.shield_cap))
-                self.shield += modified_recharge_rate
-        if self.hit_points > self.hit_point_overcharge:
-            self.hit_points -= 3 / 60
-        if self.shield > self.shield_overcharge + 1:
-            self.shield -= 10 / 60
-
-    # method for player
-    def get_coin(self):
-        self.coins += 1
-
-    # method for player
-    def purchase_upgrade(self, upgrade):
-        if self.coins >= upgrade.cost:
-            self.coins -= upgrade.cost
-            upgrade.apply_upgrade(self)
-        else:
-            print("Not enough coins!")  # This can be replaced with a more advanced feedback system.
-
-    """def draw_hitpoints(self, window):
-        hit_points_font = pygame.font.Font(None, 64)
-        hit_points_surface = hit_points_font.render(str(self.hit_points), True, (255, 0, 0))
-        hit_points_rect = hit_points_surface.get_rect(center=(self.position[0] + 70, self.position[1]))
-        window.blit(hit_points_surface, hit_points_rect)
-        pygame.display.update()"""
 
     # universal figure method
     def return_dimensions_and_position(self):
@@ -520,14 +380,7 @@ class Figure:
         self.dimensions[1])
         return dimensions
 
-    # method for player
-    def increase_ammo(self, ammo_key, amount):
-        current_ammo = self.ammo[ammo_key].current_ammo + amount
-        # Ensure the ammo doesn't exceed the max limit
-        current_ammo = min(self.ammo[ammo_key].max, current_ammo)
-        self.ammo[ammo_key] = self.ammo[ammo_key]._replace(current_ammo=current_ammo)
-
-    # method for player
+    # method for player and npcs
     def add_weapon(self, *weapons):
         for weapon in weapons:
             self.weapons.append(weapon)
@@ -655,7 +508,123 @@ class Figure:
         return cloned_obj
 
 
-class Player(Figure):
+class Actor(Figure):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Health and defense attributes
+        self.hit_points = kwargs.get('hit_points', None)
+        self.shield = kwargs.get('shield', None)
+        self.shield_cap = kwargs.get('shield_cap', None)
+        self.hit_points_cap = kwargs.get('hit_points_cap', None)
+        self.shield_recharge_rate = kwargs.get('shield_recharge_rate', None) / 60 if kwargs.get(
+            'shield_recharge_rate') else None
+        self.shield_recharge_delay = kwargs.get('shield_recharge_delay', 4)
+        self.last_got_hit_time = 0
+        self.hit_point_overcharge = kwargs.get('hit_point_overcharge', None)
+        self.shield_overcharge = kwargs.get('shield_overcharge', None)
+
+        # Weapons and combat attributes
+        self.weapons = []
+        self.weapon_index = 0
+        self.sound_effects = kwargs.get('sound_effects', None)
+        self.weapon_switch_delay = kwargs.get('weapon_switch_delay', None)
+        self.last_weapon_switch_time = 0
+
+        # Economy attributes
+        self.coins = kwargs.get('coins', 0)
+
+        # Miscellaneous attributes
+        self.available_upgrades = kwargs.get('available_upgrades', None)
+        self.no_clip = kwargs.get('no_clip', False)
+        self.marked_for_death = False
+        self.abilities = []  # Future use: create abilities like "phase jump" or dash
+
+    # method for projectiles, npcs and player
+    def apply_thrust(self, direction, mode):
+        if mode == "normal":
+            angle_in_radians = math.radians(self.orientation)
+            modifier = 0.5
+        elif mode == "strafe":
+            angle_in_radians = math.radians(self.orientation - 90)
+            modifier = 1
+
+        # Calculate the change in x and y based on the angle and velocity
+        dx = self.velocity * math.sin(angle_in_radians)
+        dy = self.velocity * math.cos(angle_in_radians)
+
+        if direction == "prograde":
+            # Update the position values
+            self.position[0] += dx
+            self.position[1] -= dy
+        if direction == "retrograde":
+            self.position[0] -= dx * modifier
+            self.position[1] += dy * modifier
+
+        # Update the rect or any other attributes based on the new position
+        self.update_rect()
+
+    # method for projectiles, npcs and player
+    def get_hit(self, damage):
+
+        self.last_got_hit_time = time.time()  # get the time of the hit
+
+        if self.sound_effects:
+            hit_sounds = self.sound_effects[0]  # Accessing the first dictionary
+            random_sound_key = random.choice(list(hit_sounds.keys()))
+            hit_sounds[random_sound_key].play()
+
+        if self.shield and self.shield > 0:
+            if damage > self.shield:
+                self.shield = 0
+                left_over_damage = damage - self.shield
+                self.hit_points -= left_over_damage
+                # TODO shield breaking = True -> stun the Figure for a few seconds or something
+            else:
+                self.shield -= damage
+        else:
+            try:
+                self.hit_points -= damage
+            except TypeError:
+                print(TypeError, "figure_class.py 372")
+
+        # Only set marked_for_death for non-Player instances
+        if not isinstance(self, Player):
+            try:
+                if self.hit_points <= 0:
+                    self.marked_for_death = True
+            except TypeError:
+                print(TypeError)
+
+    # method for npcs and player
+    def get_healed(self, amount):
+        if self.sound_effects:
+            healing_sound_effect = self.sound_effects[1]
+            healing_sound_effect["1"].play()
+        self.hit_points += amount
+        if self.hit_points_cap:
+            if self.hit_points > self.hit_points_cap:
+                self.hit_points = self.hit_points_cap
+
+    # method for npcs and player
+    def get_shield(self, amount):
+        self.shield += amount
+        if self.shield_cap:
+            if self.shield > self.shield_cap:
+                self.shield = self.shield_cap
+
+    """TODO transform this into a method that "spawns" numbers that represent the dealt damage in green if its against
+    enemies and in red if its against player and integrate it into the get_hit method"""
+
+    def draw_hitpoints(self, window):
+        hit_points_font = pygame.font.Font(None, 64)
+        hit_points_surface = hit_points_font.render(str(self.hit_points), True, (255, 0, 0))
+        hit_points_rect = hit_points_surface.get_rect(center=(self.position[0] + 70, self.position[1]))
+        window.blit(hit_points_surface, hit_points_rect)
+        pygame.display.update()
+
+
+class Player(Actor):
     def __init__(self, *args, radar_active=False, **kwargs):
         # Call the initialization method of the parent class, Figure
         super().__init__(*args, **kwargs)
@@ -703,10 +672,46 @@ class Player(Figure):
             # Reduce the shield by 3 units for each whole second
             self.shield -= 10/60
 
+    # method for player
+    def hit_points_and_shield_dynamic(self):
 
-"""Below you can see the radius attribute. It was used before to determine the detection radius of some enemies.
-It is now basically unused and it is planned to use the used weapons range as reference if the enemie is "in range" """
-class NPC(Figure):
+        """
+        handles the shield recharge delay by getting the time the last hit received
+        reduces the health and shield overcharge according to playerstats over time back to normal
+        """
+
+        current_time = time.time()
+
+        if current_time - self.last_got_hit_time > self.shield_recharge_delay:
+            if self.shield < self.shield_overcharge:
+                modified_recharge_rate = self.shield_recharge_rate * (1 - (self.shield / self.shield_cap))
+                self.shield += modified_recharge_rate
+        if self.hit_points > self.hit_point_overcharge:
+            self.hit_points -= 3 / 60
+        if self.shield > self.shield_overcharge + 1:
+            self.shield -= 10 / 60
+
+    # method for Player
+    def get_coin(self):
+        self.coins += 1
+
+    # method for player
+    def purchase_upgrade(self, upgrade):
+        if self.coins >= upgrade.cost:
+            self.coins -= upgrade.cost
+            upgrade.apply_upgrade(self)
+        else:
+            print("Not enough coins!")  # This can be replaced with a more advanced feedback system.
+
+    # method for player
+    def increase_ammo(self, ammo_key, amount):
+        current_ammo = self.ammo[ammo_key].current_ammo + amount
+        # Ensure the ammo doesn't exceed the max limit
+        current_ammo = min(self.ammo[ammo_key].max, current_ammo)
+        self.ammo[ammo_key] = self.ammo[ammo_key]._replace(current_ammo=current_ammo)
+
+
+class NPC(Actor):
     def __init__(self, *args, reward, radius, spawn_animation_active=True, gets_locked=False, is_locked=False,
                  **kwargs):
         self.items_to_drop = []
@@ -832,7 +837,7 @@ class NPC(Figure):
 
 
 
-class Projectile(Figure):
+class Projectile(Actor):
     def __init__(self, name, damage, orientation, velocity, position, life_time=None, sprite_loader=None,
                  max_reach=None, max_pierce=None, animation=None):
 
@@ -1624,7 +1629,7 @@ omega_health_template = Item(name="Omega Health_pick up", type_="pick_up", posit
 coin_item_template = Item(name="Coin_pick up", type_="pick_up", position=[100, 100],
                           sprite_loader=Sprite_sheet_loader_3d(coin_model, 100, scale=0.3),
                           pick_up_distance=50,
-                          effect_function=Item.get_coin,
+                          effect_function=Item.give_coin,
                           turn_speed=5,
                           chance=1)
 
