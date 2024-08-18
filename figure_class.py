@@ -202,123 +202,6 @@ class Sprite_sheet_loader_3d:
         index = int(closest_orientation // self.step)
         return self.oriented_sprites[index]
 
-class Entity:
-    def __init__(self, name, position, dimensions=[5, 5], sprite_loader=None,
-                 animaiton=None, orientation=0, color=(255,255,255), type_="standart"):
-        self.name = name
-        self.position = position
-        self.dimensions = dimensions
-        self.sprite_loader = sprite_loader
-        self.animation = animaiton
-        self.orientation = orientation
-        self.color = color
-        self.type_ = type_
-
-    def rotate_figure(self, direction):
-        # Rotate animation
-        if direction == "left":
-            self.orientation -= self.turn_speed
-        elif direction == "right":
-            self.orientation += self.turn_speed
-
-    def movement(self, direction):
-        # The x and y limits are used here to prevent the player from leaving the screen
-        if direction == "up":
-            self.position[1] -= self.velocity
-        if direction == "down":
-            self.position[1] += self.velocity
-        if direction == "left":
-            self.position[0] -= self.velocity
-        if direction == "right":
-            self.position[0] += self.velocity
-        self.update_rect()
-
-    def apply_thrust(self, direction, mode):
-        if mode == "normal":
-            angle_in_radians = math.radians(self.orientation)
-            modifier = 0.5
-        elif mode == "strafe":
-            angle_in_radians = math.radians(self.orientation - 90)
-            modifier = 1
-
-        # Calculate the change in x and y based on the angle and velocity
-        dx = self.velocity * math.sin(angle_in_radians)
-        dy = self.velocity * math.cos(angle_in_radians)
-
-        if direction == "prograde":
-            # Update the position values
-            self.position[0] += dx
-            self.position[1] -= dy
-        if direction == "retrograde":
-            self.position[0] -= dx * modifier
-            self.position[1] += dy * modifier
-
-        # Update the rect or any other attributes based on the new position
-        self.update_rect()
-
-    def update_mask(self):
-        self.mask = pygame.mask.from_surface(self.sprite_loader.get_oriented_sprite(self.orientation))
-        self.mask_image = self.mask.to_surface()
-
-    def update_rect(self):
-
-        """print(f"Position: {self.position}, Dimensions: {self.dimensions}")
-        print(f"Calculated X: {self.position[0] - self.dimensions[0] // 2}")"""
-
-        # Center the rect on the figure's position
-        self.rect.x = self.position[0] - self.dimensions[0] // 2
-        self.rect.y = self.position[1] - self.dimensions[1] // 2
-        self.rect.width, self.rect.height = self.dimensions
-
-    def update_dimensions_from_sprite(self, sprite):
-        self.dimensions = sprite.get_width(), sprite.get_height()
-        self.update_rect()  # Update the rect based on the new dimensions
-
-    def override_position(self, new_position):
-        self.position = new_position
-
-    def debug_visuals(self, window, frame):
-        # Vary the hue between 0 and 1
-        hue = (frame % 360) / 360.0  # Convert frame count to a value between 0 and 1
-        saturation, value = 1, 1  # Full saturation and value for a vibrant color
-
-        # Convert HSV to RGB
-        rgb_fractional = colorsys.hsv_to_rgb(hue, saturation, value)  # Returns colors in range [0, 1]
-        rgb = tuple(int(c * 255) for c in rgb_fractional)  # Convert to range [0, 255]
-        # draw position point
-        pygame.draw.circle(window, (255, 0, 0), (int(self.position[0]), int(self.position[1])), 5)
-        # Draw hitbox
-        pygame.draw.rect(window, (0, 255, 0), self.rect, 2)
-
-        # Draw orientation line
-        length = 50  # Length of the orientation line
-        angle_in_radians = math.radians(self.orientation)
-        end_x = int(self.position[0] + length * math.sin(angle_in_radians))
-        end_y = int(self.position[1] - length * math.cos(angle_in_radians))
-
-        pygame.draw.line(window, (0, 0, 255), (int(self.position[0]), int(self.position[1])), (end_x, end_y), 2)
-        # Draw mask
-        window.blit(self.mask_image,
-                    [self.position[0] + 0.5 * self.dimensions[0], self.position[1] + 0.5 * self.dimensions[1]])
-        # because for npcs for some godforsaken reason the elements in the position are becoming a float at some point
-        figure_position = [int(coord) for coord in self.position]
-        # wich would spam the screen with numbers
-        font = pygame.font.Font(None, 32)
-        name_surface = font.render(f"{self.name}; {self.type_}; {figure_position}", False, rgb)
-        name_rect = name_surface.get_rect(topright=self.position)
-        window.blit(name_surface, name_rect)
-
-    def draw_figure(self, window):
-        if self.sprite_loader:  # If a SpriteSheetLoader instance is available
-            sprite = self.sprite_loader.get_oriented_sprite(self.orientation)
-            window.blit(sprite, (self.position[0] - self.sprite_loader.sprite_width // 2,
-                                 self.position[1] - self.sprite_loader.sprite_height // 2))
-            self.update_dimensions_from_sprite(sprite)
-            self.update_mask()
-        else:  # If no sprite sheet is provided, draw a green square
-            self.update_rect()
-            pygame.draw.rect(window, self.color, self.return_dimensions_and_position())
-
 
 class Figure:
     def __init__(self, name, position, **kwargs):
@@ -380,10 +263,7 @@ class Figure:
         self.dimensions[1])
         return dimensions
 
-    # method for player and npcs
-    def add_weapon(self, *weapons):
-        for weapon in weapons:
-            self.weapons.append(weapon)
+
 
     # method for player and npcs as well as projectiles that spawn "shrapnel"
     def offset_spawn_position(self):  # so you don't shoot yourself
@@ -399,26 +279,6 @@ class Figure:
 
         return [new_x, new_y]
 
-    # method for player and npcs
-    def trigger_pull(self):
-        current_weapon = self.weapons[self.weapon_index]
-        if self.weapons:
-
-            projectile_type = self.type_ + "projectile"
-            if current_weapon.muzzle_flash and current_weapon.can_shoot():
-                a = current_weapon.muzzle_flash
-                a.position = self.offset_spawn_position()
-                a.angle = -(self.orientation - 90)
-
-                return current_weapon.weapon_shoot(self.orientation, self.offset_spawn_position(),
-                                                   projectile_type), current_weapon.muzzle_flash.clone()
-            else:
-                return current_weapon.weapon_shoot(self.orientation, self.offset_spawn_position(),
-                                                   projectile_type), None
-
-        else:
-            print("No Weapon available")
-            return None
 
     # universal figure method
     def update_mask(self):
@@ -595,6 +455,32 @@ class Actor(Figure):
                     self.marked_for_death = True
             except TypeError:
                 print(TypeError)
+
+    # method for player and npcs
+    def trigger_pull(self):
+        current_weapon = self.weapons[self.weapon_index]
+        if self.weapons:
+
+            projectile_type = self.type_ + "projectile"
+            if current_weapon.muzzle_flash and current_weapon.can_shoot():
+                a = current_weapon.muzzle_flash
+                a.position = self.offset_spawn_position()
+                a.angle = -(self.orientation - 90)
+
+                return current_weapon.weapon_shoot(self.orientation, self.offset_spawn_position(),
+                                                   projectile_type), current_weapon.muzzle_flash.clone()
+            else:
+                return current_weapon.weapon_shoot(self.orientation, self.offset_spawn_position(),
+                                                   projectile_type), None
+
+        else:
+            print("No Weapon available")
+            return None
+
+    # method for player and npcs
+    def add_weapon(self, *weapons):
+        for weapon in weapons:
+            self.weapons.append(weapon)
 
     # method for npcs and player
     def get_healed(self, amount):
@@ -835,8 +721,6 @@ class NPC(Actor):
         return cloned_npc
 
 
-
-
 class Projectile(Actor):
     def __init__(self, name, damage, orientation, velocity, position, life_time=None, sprite_loader=None,
                  max_reach=None, max_pierce=None, animation=None):
@@ -955,7 +839,7 @@ class HomingProjectile(Projectile):
                  **kwargs):
         # Handle turn_speed before calling the superclass's __init__ method
         self.turn_speed = turn_speed
-        # Call the initialization method of the parent class, Figure
+        # Call the initialization method of the parent class, Projectile
         super().__init__(*args, **kwargs)
         self.turn_speed = turn_speed
         self.locked_target = locked_target
@@ -977,11 +861,8 @@ class HomingProjectile(Projectile):
 
             # Convert the angle to degrees
             angle_in_degrees = math.degrees(angle_in_radians)
+            # adjust angle to match the orientation of the game
             desired_orientation = (angle_in_degrees + 90) % 360
-
-            # Adjust the angle so it works with your game's orientation system
-            # You might need to add or subtract 90 degrees or make other adjustments depending on how your sprites are oriented
-
             # Calculate the angle difference
             angle_diff = desired_orientation - self.orientation
             # Adjust for wrapping around 360 degrees
@@ -1192,13 +1073,6 @@ class Cursor(Figure):
         centered_x = self.position[0] - self.sprite.get_width() // 2
         centered_y = self.position[1] - self.sprite.get_height() // 2
         window.blit(self.sprite, (centered_x, centered_y))
-
-    def cursor_in_range(self, target):
-        distance = math.sqrt(
-            (self.position[0] - target.position[0]) ** 2 + (self.position[1] - target.position[1]) ** 2)
-        return distance < self.weapons[self.weapon_index].max_reach
-
-
 
 
 class Weapon:

@@ -1,5 +1,7 @@
 import time  # currently unused
 
+import pygame
+
 from menu import *  # currently unused
 from figure_class import *
 from text_prompt import InputBox
@@ -669,8 +671,6 @@ class Game:
 
                 reset_streak_handler()
 
-
-
     def animation_handler(self):
         finished_animations = []
 
@@ -1170,6 +1170,14 @@ class Game:
                             left_mouse_held_down = False
                         if event.button == 3:  # Right mouse button
                             right_mouse_held_down = False
+
+                    if event.type == pygame.MOUSEWHEEL:
+                        if event.y > 0:
+                            # Scroll up: Increase the weapon index and wrap around
+                            self.player.weapon_index = (self.player.weapon_index + 1) % len(self.player.weapons)
+                        elif event.y < 0:
+                            # Scroll down: Decrease the weapon index and wrap around
+                            self.player.weapon_index = (self.player.weapon_index - 1) % len(self.player.weapons)
 
                     if event.type == pygame.KEYDOWN:
                         if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5]:
