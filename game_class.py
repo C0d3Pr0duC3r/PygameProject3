@@ -871,43 +871,33 @@ class Game:
 # collision block
 ########################
 
-    def movement_handler(self, keys, mode="standard"):
-        """ handles movement and orientation behaviours according to key inputs."""
+    def movement_handler(self, keys):
+        """Handles movement and orientation behaviors according to key inputs."""
 
         player = self.player  # This retrieves the player from the figures list using the property
 
         if not player:  # If there's no player, we don't need to process movement
             return
-        if mode == "standard":
-            if keys[pygame.K_a]:
-                player.movement("left")
-                player.orientation = 270
-            if keys[pygame.K_d]:
-                player.movement("right")
-                player.orientation = 90
-            if keys[pygame.K_w]:
-                player.movement("up")
-                player.orientation = 0
-            if keys[pygame.K_s]:
-                player.movement("down")
-                player.orientation = 180
-            if keys[pygame.K_q]:
-                player.apply_thrust("prograde", "strafe")
-            if keys[pygame.K_e]:
-                player.apply_thrust("retrograde", "strafe")
 
-            if keys[pygame.K_a] and keys[pygame.K_w]:
-                player.orientation = 315
-            if keys[pygame.K_d] and keys[pygame.K_w]:
-                player.orientation = 45
-            if keys[pygame.K_a] and keys[pygame.K_s]:
-                player.orientation = 225
-            if keys[pygame.K_d] and keys[pygame.K_s]:
-                player.orientation = 135
-        if mode == "thrust_vector":
-            if keys[pygame.K_a]:
-                player.apply_thrust("prograde", "normal")
+        # Orient the player to look at the mouse position
+        player.look_at(self.mouse_pos)
 
+        # Check which movement key is pressed and call the appropriate movement method
+        if keys[pygame.K_w]:
+            # "W" key is pressed: Move forward in the direction the player is facing
+            player.movement(key_pressed=True, mode="normal", direction="prograde")
+        elif keys[pygame.K_s]:
+            # "S" key is pressed: Move backward in the opposite direction of the player’s facing
+            player.movement(key_pressed=True, mode="normal", direction="retrograde")
+        if keys[pygame.K_d]:
+            # "E" key is pressed: Strafe right
+            player.movement(key_pressed=True, mode="strafing", direction="prograde")
+        elif keys[pygame.K_a]:
+            # "Q" key is pressed: Strafe left
+            player.movement(key_pressed=True, mode="strafing", direction="retrograde")
+        else:
+            # No key pressed: Maintain current velocity (possibly apply friction)
+            player.movement(key_pressed=False)
 
     def handle_fire_effects(self, character, angle=None):
         if angle is not None:  # If an angle is provided (for the player)
@@ -944,7 +934,7 @@ class Game:
 
         for npc in self.figures:
             if isinstance(npc, NPC) and self.player:  # Ensure it's an NPC and player exists
-                npc.look_at(self.player.position)
+                npc.look_at(self.player, window=self.window)
                 player_in_attack_range = npc.is_in_range(target=self.player)
                 if player_in_attack_range:
                     current_weapon = npc.weapons[npc.weapon_index]

@@ -13,7 +13,7 @@ pygame.mixer.set_num_channels(32)  # Set to 32 channels
 
 WEAPON_SWITCH_DELAY = 2
 
-AmmoType = namedtuple('AmmoType', ['current_ammo', 'max'])
+AmmoType = namedtuple(typename='AmmoType', field_names=['current_ammo', 'max'])
 
 explosion_animation_sheet = 'graphics/animations/Explosion_A-Sheet.png'
 explosion_sprite = 'graphics\\effects\\Some_explosion.png'
@@ -125,7 +125,6 @@ class Animation:
 
         if frame_counter % int(update_interval) == 0:
             self.current_frame = (self.current_frame + 1) % self.num_frames
-            # print(f"self.owner: {self.owner}, self.owner.name: {self.owner.name}, self.name: {self.name} Animation frame: {self.current_frame}")  # Debug print
 
     def draw_animation(self, window, position):
         current_frame = self.sprites[self.current_frame]
@@ -212,7 +211,6 @@ class Figure:
         # Position and movement attributes
         self.position = list(position)
         self.velocity = kwargs.get('velocity', 0)
-        self.acceleration = kwargs.get('acceleration', 0)
         self.orientation = kwargs.get('orientation', 0)
         self.turn_speed = kwargs.get('turn_speed', 0)
         self.y_limit = kwargs.get('y_limit', None)
@@ -241,9 +239,7 @@ class Figure:
 
     # universal figure method
     def movement(self, direction):
-        # The x and y limits are used here to prevent the player from leaving the screen
         if direction == "up":
-            # use self.acceleration until velocity accelerated to max_velocity
             self.position[1] -= self.velocity
         if direction == "down":
             self.position[1] += self.velocity
@@ -253,8 +249,6 @@ class Figure:
             self.position[0] += self.velocity
         self.update_rect()
 
-
-
     # universal figure method
     def return_dimensions_and_position(self):
         # the // operation ensures, that the center of the rect is used as position of the object
@@ -262,8 +256,6 @@ class Figure:
         self.position[0] - self.dimensions[0] // 2, self.position[1] - self.dimensions[1] // 2, self.dimensions[0],
         self.dimensions[1])
         return dimensions
-
-
 
     # method for player and npcs as well as projectiles that spawn "shrapnel"
     def offset_spawn_position(self):  # so you don't shoot yourself
@@ -278,7 +270,6 @@ class Figure:
         new_y = self.position[1] - dy * 0.9  # Subtract dy because the y-axis is inverted in Pygame
 
         return [new_x, new_y]
-
 
     # universal figure method
     def update_mask(self):
@@ -390,6 +381,7 @@ class Actor(Figure):
         self.sound_effects = kwargs.get('sound_effects', None)
         self.weapon_switch_delay = kwargs.get('weapon_switch_delay', None)
         self.last_weapon_switch_time = 0
+        self.current_weapon = None
 
         # Economy attributes
         self.coins = kwargs.get('coins', 0)
@@ -423,6 +415,44 @@ class Actor(Figure):
 
         # Update the rect or any other attributes based on the new position
         self.update_rect()
+
+    def look_at(self, target, instant=False):
+
+        # Calculate the change in x and y
+        dx = target[0] - self.position[0]
+        dy = target[1] - self.position[1]
+
+        # Calculate the angle in radians between the positive x-axis and the ray to the point (dx, dy)
+        angle_in_radians = math.atan2(dy, dx)
+
+        # Convert the angle to degrees
+        angle_in_degrees = math.degrees(angle_in_radians)
+        desired_orientation = (angle_in_degrees + 90) % 360
+
+        # Adjust the angle so it works with your game's orientation system
+        # You might need to add or subtract 90 degrees or make other adjustments depending on how your sprites are oriented
+        if instant:
+            self.orientation = desired_orientation
+        else:
+            # Calculate the angle difference
+            angle_diff = desired_orientation - self.orientation
+            # Adjust for wrapping around 360 degrees
+            if angle_diff > 180:
+                angle_diff -= 360
+            elif angle_diff < -180:
+                angle_diff += 360
+
+            # Adjust orientation based on turn speed
+            if abs(angle_diff) < self.turn_speed:
+                # If the remaining angle to turn is smaller than the turn speed, just set the orientation to the desired orientation
+                self.orientation = desired_orientation
+            elif angle_diff > 0:
+                self.orientation += self.turn_speed
+            else:
+                self.orientation -= self.turn_speed
+
+            # Ensure orientation stays between 0 and 359 degrees
+            self.orientation %= 360
 
     # method for projectiles, npcs and player
     def get_hit(self, damage):
@@ -458,19 +488,20 @@ class Actor(Figure):
 
     # method for player and npcs
     def trigger_pull(self):
-        current_weapon = self.weapons[self.weapon_index]
+        self.current_weapon = self.weapons[self.weapon_index]
+        print(self.current_weapon.name, self.current_weapon.projectile_velocity)
         if self.weapons:
 
             projectile_type = self.type_ + "projectile"
-            if current_weapon.muzzle_flash and current_weapon.can_shoot():
-                a = current_weapon.muzzle_flash
+            if self.current_weapon.muzzle_flash and self.current_weapon.can_shoot():
+                a = self.current_weapon.muzzle_flash
                 a.position = self.offset_spawn_position()
                 a.angle = -(self.orientation - 90)
 
-                return current_weapon.weapon_shoot(self.orientation, self.offset_spawn_position(),
-                                                   projectile_type), current_weapon.muzzle_flash.clone()
+                return self.current_weapon.weapon_shoot(self.orientation, self.offset_spawn_position(),
+                                                   projectile_type), self.current_weapon.muzzle_flash.clone()
             else:
-                return current_weapon.weapon_shoot(self.orientation, self.offset_spawn_position(),
+                return self.current_weapon.weapon_shoot(self.orientation, self.offset_spawn_position(),
                                                    projectile_type), None
 
         else:
@@ -514,14 +545,83 @@ class Player(Actor):
     def __init__(self, *args, radar_active=False, **kwargs):
         # Call the initialization method of the parent class, Figure
         super().__init__(*args, **kwargs)
+        self.max_velocity = kwargs.get('max_velocity', 1)
+        self.acceleration = kwargs.get('acceleration', 1)
+        self.velocity = [0, 0]
         self.target_index = -1
         self.radar_active = radar_active
+        self.is_moving = False
         self.ammo = {
             "energy_ammo": AmmoType(50, 200),
             "projectile_ammo": AmmoType(0, 500),
             "shell_ammo": AmmoType(0, 50),
             "missile_ammo": AmmoType(10, 20)
+
         }
+
+    def movement(self, key_pressed, mode="normal", direction="prograde"):
+        """
+        Update the player's position based on their velocity, acceleration, and direction.
+
+        Args:
+        - key_pressed (bool): True if a movement key is pressed, False if not.
+        - mode (str): "normal" for forward/backward movement, "strafing" for side-to-side movement.
+        - direction (str): "prograde" for forward/right movement, "retrograde" for backward/left movement.
+        """
+
+        # Convert the player's orientation to radians (assuming self.orientation is in degrees)
+        angle_in_radians = math.radians(self.orientation - 90)
+
+        if mode == "normal":
+            # Normal mode: apply thrust forward/backward based on orientation
+            if key_pressed:
+                if direction == "prograde":
+                    # Apply acceleration in the direction of orientation
+                    acceleration_x = self.acceleration * math.cos(angle_in_radians)
+                    acceleration_y = self.acceleration * math.sin(angle_in_radians)
+                    self.velocity[0] += acceleration_x
+                    self.velocity[1] += acceleration_y
+                elif direction == "retrograde":
+                    # Apply reverse acceleration
+                    acceleration_x = self.acceleration * math.cos(angle_in_radians)
+                    acceleration_y = self.acceleration * math.sin(angle_in_radians)
+                    self.velocity[0] -= acceleration_x
+                    self.velocity[1] -= acceleration_y
+        elif mode == "strafing":
+            # Strafing mode: apply thrust to the sides
+            if key_pressed:
+                if direction == "prograde":
+                    # Strafe right (perpendicular to orientation)
+                    acceleration_x = self.acceleration * math.cos(angle_in_radians + math.pi / 2)
+                    acceleration_y = self.acceleration * math.sin(angle_in_radians + math.pi / 2)
+                    self.velocity[0] += acceleration_x
+                    self.velocity[1] += acceleration_y
+                elif direction == "retrograde":
+                    # Strafe left (perpendicular to orientation)
+                    acceleration_x = self.acceleration * math.cos(angle_in_radians - math.pi / 2)
+                    acceleration_y = self.acceleration * math.sin(angle_in_radians - math.pi / 2)
+                    self.velocity[0] += acceleration_x
+                    self.velocity[1] += acceleration_y
+
+        # Cap the velocity to max_velocity
+        velocity_magnitude = math.sqrt(self.velocity[0] ** 2 + self.velocity[1] ** 2)
+        if velocity_magnitude > self.max_velocity:
+            scale = self.max_velocity / velocity_magnitude
+            self.velocity[0] *= scale
+            self.velocity[1] *= scale
+
+        # Apply friction when no key is pressed
+        if not key_pressed:
+            friction = 0.98  # Example friction value
+            self.velocity[0] *= friction
+            self.velocity[1] *= friction
+
+        # Update the position based on the current velocity
+        self.position[0] += self.velocity[0]
+        self.position[1] += self.velocity[1]
+
+        # Update the player's rect (or any other related attributes)
+        self.update_rect()
 
     def draw_locking_markers(self, enemy_figures, window):
         # Line thickness for the rectangle outline
@@ -650,10 +750,46 @@ class NPC(Actor):
             (self.position[0] - target.position[0]) ** 2 + (self.position[1] - target.position[1]) ** 2)
         return distance < self.weapons[self.weapon_index].max_reach
 
-    def look_at(self, target_pos, instant=False):
-        # Calculate the change in x and y
-        dx = target_pos[0] - self.position[0]
-        dy = target_pos[1] - self.position[1]
+    import math
+
+    def calculate_lead_target(self, target_position, target_velocity, projectile_velocity):
+        player_x, player_y = target_position
+        npc_x, npc_y = self.position
+
+        # Decompose target velocity into x and y components
+        v_x, v_y = target_velocity  # Assume target_velocity is a tuple or list [vx, vy]
+
+        # Calculate the distance between NPC and player
+        distance = math.sqrt((npc_x - player_x) ** 2 + (npc_y - player_y) ** 2)
+
+        # Estimate the time to impact
+        if projectile_velocity > 0:
+            T = distance / projectile_velocity
+        else:
+            T = 0  # Prevent division by zero
+
+        # Calculate the lead position based on target velocity
+        lead_x = player_x + v_x * T
+        lead_y = player_y + v_y * T
+
+        lead_pos = [lead_x, lead_y]
+
+        return lead_pos
+
+    def look_at(self, target, window, instant=False, lead_target=True):
+
+        if lead_target and self.current_weapon:
+            lead_target_pos = self.calculate_lead_target(target.position, target.velocity,
+                                        self.current_weapon.projectile_velocity)
+            pygame.draw.circle(window, (0, 255, 0), lead_target_pos, 5) # debug line
+
+            # Calculate the change in x and y
+            dx = lead_target_pos[0] - self.position[0]
+            dy = lead_target_pos[1] - self.position[1]
+        else:
+            # Calculate the change in x and y
+            dx = target.position[0] - self.position[0]
+            dy = target.position[1] - self.position[1]
 
         # Calculate the angle in radians between the positive x-axis and the ray to the point (dx, dy)
         angle_in_radians = math.atan2(dy, dx)
@@ -686,6 +822,7 @@ class NPC(Actor):
 
             # Ensure orientation stays between 0 and 359 degrees
             self.orientation %= 360
+
 
     def clone(self):
 
@@ -760,7 +897,6 @@ class Projectile(Actor):
             a = self.position[0] - self.spawn_position[0]
             b = self.position[1] - self.spawn_position[1]
             distance_traveled = math.sqrt(a ** 2 + b ** 2)
-            # print(distance_traveled) # debug line
 
             if distance_traveled > self.max_reach:
                 return True  # remove projectile
@@ -1079,7 +1215,7 @@ class Weapon:
     """owner is only important for the player or if the owner is using finite ammo, so the weapon class has a reference
     to where to deduct the ammo"""
 
-    def __init__(self, name, damage, velocity, cooldown, owner=None, sound_volume=1, shoot_sound=None,
+    def __init__(self, name, damage, projectile_velocity, cooldown, owner=None, sound_volume=1, shoot_sound=None,
                  projectile_color=None, projectile_dimensions=None, sprite_loader=None,
                  max_reach=None, max_pierce=None, spread=0, projectiles_count=1,
                  heat_increase_per_shot=5, heat_decrease_per_second=2, max_heat=100,
@@ -1087,7 +1223,7 @@ class Weapon:
                  muzzle_flash=None, animation=None):
         self.name = name
         self.damage = damage
-        self.velocity = velocity
+        self.projectile_velocity = projectile_velocity
         self.cooldown = cooldown
         self.owner = owner
         self.sound_volume = sound_volume
@@ -1188,7 +1324,7 @@ class Weapon:
                 new_orientation = orientation + deviation
 
                 projectile = Projectile(name=self.name + "projectile", damage=self.damage, orientation=new_orientation,
-                                        velocity=self.velocity,
+                                        velocity=self.projectile_velocity,
                                         position=origin_position, sprite_loader=self.sprite_loader, max_reach=self.max_reach,
                                         max_pierce=self.max_pierce, animation=self.animation)
 
@@ -1218,7 +1354,7 @@ class Weapon:
             name=self.name,
             damage=self.damage,
             owner=self.owner,
-            velocity=self.velocity,
+            projectile_velocity=self.projectile_velocity,
             cooldown=self.cooldown,
             sprite_loader=self.sprite_loader,  # Assuming this is okay to share the reference
             max_reach=self.max_reach,
@@ -1274,7 +1410,7 @@ class HomingWeapon(Weapon):
                 deviation = (-self.spread / 2) + (self.spread * random.random())
                 new_orientation = orientation + deviation
                 projectile = HomingProjectile(name=self.name + "_projectile", damage=self.damage,
-                                              orientation=new_orientation, velocity=self.velocity,
+                                              orientation=new_orientation, projectile_velocity=self.projectile_velocity,
                                               position=origin_position, sprite_loader=self.sprite_loader,
                                               max_reach=self.max_reach, max_pierce=self.max_pierce,
                                               animation=self.animation, locked_target=self.locked_target,
@@ -1304,7 +1440,7 @@ class HomingWeapon(Weapon):
             name=self.name,
             damage=self.damage,
             owner=self.owner,
-            velocity=self.velocity,
+            projectile_velocity=self.projectile_velocity,
             cooldown=self.cooldown,
             sprite_loader=self.sprite_loader,  # Assuming this is okay to share the reference
             max_reach=self.max_reach,
@@ -1445,7 +1581,7 @@ add_projectile_upgrade = Upgrade("add projectile", "adds an additional projectil
 player = Player("player", [300, 300], hit_points=100, shield=0, shield_cap=150, shield_overcharge=100,
                 hit_points_cap=200, hit_point_overcharge=120,
                 sprite_loader=Sprite_sheet_loader_3d(player_model, 100, 0.7), shield_recharge_rate=10,
-                turn_speed=5, velocity=8, x_limit=500, y_limit=500, type_="player", sound_effects=player_sounds,
+                turn_speed=5, max_velocity=8, acceleration=2, x_limit=500, y_limit=500, type_="player", sound_effects=player_sounds,
                 coins=0,
                 available_upgrades=[hp_upgrade_overcharge, shield_upgrade_overcharge, shield_recharge_rate_upgrade,
                                     shield_recharge_delay_upgrade]
@@ -1585,7 +1721,7 @@ basic_blaster = Weapon("blaster",
                        available_weapon_upgrades=[damage_upgrade.clone(), fire_rate_upgrade.clone(), add_projectile_upgrade.clone()],
                        animation=[projectile_explosion])
 
-missile_launcher = HomingWeapon(name="missile launcher", damage=80, velocity=20, cooldown=1, owner=player,
+missile_launcher = HomingWeapon(name="missile launcher", damage=80, projectile_velocity=20, cooldown=1, owner=player,
                                 sprite_loader=Sprite_sheet_loader_3d(missile_model, 100, 0.4),
                                 max_reach=1000,
                                 max_pierce=None,
@@ -1603,7 +1739,7 @@ missile_launcher = HomingWeapon(name="missile launcher", damage=80, velocity=20,
                                 available_weapon_upgrades=[damage_upgrade.clone(), fire_rate_upgrade.clone(), add_projectile_upgrade.clone()],
                                 animation=[projectile_explosion])
 
-enemy_missile_launcher = HomingWeapon("homing_enemy_missile", damage=80, velocity=10, cooldown=3,
+enemy_missile_launcher = HomingWeapon("homing_enemy_missile", damage=80, projectile_velocity=10, cooldown=3,
                                     sprite_loader=Sprite_sheet_loader_3d(missile_model, 100, 0.4),
                                     max_reach=1000,
                                     max_pierce=None,
@@ -1630,7 +1766,7 @@ enemy_missile_launcher = HomingWeapon("homing_enemy_missile", damage=80, velocit
 spreader = Weapon("spreader",
                   damage=20,
                   owner=None,
-                  velocity=15,
+                  projectile_velocity=15,
                   projectile_dimensions=[10, 10],
                   projectile_color=(255, 0, 255),
                   cooldown=0.5,
@@ -1647,7 +1783,7 @@ spreader = Weapon("spreader",
 
 chain_gun = Weapon("chain_gun",
                    damage=25,
-                   velocity=25,
+                   projectile_velocity=25,
                    cooldown=0.05,
                    owner=None,
                    sprite_loader=None,
@@ -1712,18 +1848,18 @@ shredder_chain_gun = Weapon("enemy shredder chaingun", 10, 38, 0.03, sprite_load
                             max_reach=600, shoot_sound=enemy_rara_sound, sound_volume=0.3, heat_decrease_per_second=1,
                             max_heat=250, animation=[projectile_explosion])
 
-enemy_spreader = Weapon("enemy spreader", damage=20, velocity=10, cooldown=0.5, spread=10,
+enemy_spreader = Weapon("enemy spreader", damage=20, projectile_velocity=10, cooldown=0.5, spread=10,
                         projectile_dimensions=[10, 10], projectile_color=(136, 255, 122),
                         projectiles_count=5, max_reach=400,
                         sprite_loader=None, shoot_sound=enemy_spreader_sound, heat_increase_per_shot=35, max_heat=100)
 
-enemy_boss_spreader = Weapon("enemy spreader", damage=20, velocity=20, cooldown=0.2, spread=10,
+enemy_boss_spreader = Weapon("enemy spreader", damage=20, projectile_velocity=20, cooldown=0.2, spread=10,
                              projectile_dimensions=[10, 10], projectile_color=(136, 255, 122),
                              projectiles_count=5, max_reach=400,
                              sprite_loader=None, shoot_sound=enemy_spreader_sound, heat_increase_per_shot=15,
                              max_heat=100)
 
-enemy_rail_gun = Weapon("enemy rail gun", damage=100, velocity=30, cooldown=0.5, spread=10,
+enemy_rail_gun = Weapon("enemy rail gun", damage=100, projectile_velocity=30, cooldown=0.5, spread=10,
                         projectile_dimensions=[25, 25], projectile_color=(0, 255, 122),
                         projectiles_count=1, max_reach=800, max_heat=100, heat_increase_per_shot=101,
                         sprite_loader=None, shoot_sound=rail_gun_sound)
