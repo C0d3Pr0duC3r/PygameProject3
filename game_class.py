@@ -1,8 +1,5 @@
 import time  # currently unused
-
-import pygame
-
-from menu import *  # currently unused
+from menu import *
 from figure_class import *
 from text_prompt import InputBox
 import os
@@ -32,24 +29,7 @@ def render_multi_line_text(screen, text, font, position, gap, color=(0, 0, 0), a
         y += font.get_height() + gap
 
 
-
-
 red = (255, 0, 0)
-
-
-class Camera:
-    def __init__(self, width, height):
-        self.camera = pygame.Rect(0, 0, width, height)
-
-    def apply(self, entity):
-        # This function translates an entity's position into the camera's coordinates
-        return entity.rect.move(self.camera.topleft)
-
-    def update(self, target):
-        # Centers the camera on the target entity (e.g., the player)
-        x, y = target.rect.center
-        self.camera = pygame.Rect(-x + self.camera.width // 2, -y + self.camera.height // 2, self.camera.width,
-                                  self.camera.height)
 
 
 class Button:
@@ -183,8 +163,6 @@ class Game:
 
         self.cursor = cursor
         self.player_template = player_template
-        self.camera = Camera(self.window_dimensions[0],
-                             self.window_dimensions[1])  # assuming your screen size is 800x600
 
         self.scale_background = scale_background
         if background_image_path is not None and scale_background:
@@ -219,12 +197,16 @@ class Game:
         self.kill_streak_counter = 0
         self.bonus_score = 0
 
+        self.menus = {
+            # TODO be able to generate menus from json files
+        }
+
         self.keybindings = {
             "up": pygame.K_w,
             "down": pygame.K_s,
             "left": pygame.K_a,
             "right": pygame.K_d
-                            } # TODO expand later and implement rebinding mechanic
+                            }
 
         # Define stages
         self.stages = [
@@ -507,6 +489,7 @@ class Game:
                                fill=True)
 
     def draw_pause_screen(self):
+        # TODO create a small menu that can switch the movement modes of the player
         font = pygame.font.Font(self.game_font, 64)
         text_surface = font.render('Pause, to unpause press Space or ESC to quit', False, (255, 255, 255))
         text_rect = text_surface.get_rect(center=(self.window_dimensions[0] // 2, self.window_dimensions[1] // 2))
@@ -1021,7 +1004,6 @@ class Game:
                 y_position = 100  # Reset Y position for the next column
 
     def run(self, is_running):
-        # TODO mal anständig kommentieren
         """
         The run method handles the main game loop logic.
         """
@@ -1062,7 +1044,7 @@ class Game:
                                 if input_box.name == "name_prompt":
                                     if input_box.text.strip() != "" and len(input_box.text) < 10:
                                         self.player.name = input_box.text
-                                        self.state = "playing"
+                                        self.change_state("playing")
                                     else:
                                         # Handle case where name is empty or only spaces
                                         print("Please enter a valid name.")
@@ -1305,8 +1287,6 @@ class Game:
                 self.npc_behaviour_manager()
                 if self.debug_mode:
                     self.draw_debug_data()
-
-
 
             # Display the game over screen
             if self.state == "game_over":
