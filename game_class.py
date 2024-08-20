@@ -219,6 +219,13 @@ class Game:
         self.kill_streak_counter = 0
         self.bonus_score = 0
 
+        self.keybindings = {
+            "up": pygame.K_w,
+            "down": pygame.K_s,
+            "left": pygame.K_a,
+            "right": pygame.K_d
+                            } # TODO expand later and implement rebinding mechanic
+
         # Define stages
         self.stages = [
             Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=2500, bosses_destroyed_threshold=None,
@@ -871,33 +878,44 @@ class Game:
 # collision block
 ########################
 
-    def movement_handler(self, keys):
+    def movement_handler(self, keys, mode, angle=None):
         """Handles movement and orientation behaviors according to key inputs."""
 
         player = self.player  # This retrieves the player from the figures list using the property
 
         if not player:  # If there's no player, we don't need to process movement
             return
+        if mode == "arcade":
+            player.orientation = angle
+            if keys[self.keybindings["up"]]:
+                player.arcade_movement(key_pressed=True, direction="up")
+            elif keys[self.keybindings["down"]]:
+                player.arcade_movement(key_pressed=True, direction="down")
+            if keys[self.keybindings["left"]]:
+                player.arcade_movement(key_pressed=True, direction="left")
+            elif keys[self.keybindings["right"]]:
+                player.arcade_movement(key_pressed=True, direction="right")
 
-        # Orient the player to look at the mouse position
-        player.look_at(self.mouse_pos)
+        if mode == "thrust_vector":
+            # Orient the player to look at the mouse position
+            player.look_at(self.mouse_pos)
 
-        # Check which movement key is pressed and call the appropriate movement method
-        if keys[pygame.K_w]:
-            # "W" key is pressed: Move forward in the direction the player is facing
-            player.movement(key_pressed=True, mode="normal", direction="prograde")
-        elif keys[pygame.K_s]:
-            # "S" key is pressed: Move backward in the opposite direction of the player’s facing
-            player.movement(key_pressed=True, mode="normal", direction="retrograde")
-        if keys[pygame.K_d]:
-            # "E" key is pressed: Strafe right
-            player.movement(key_pressed=True, mode="strafing", direction="prograde")
-        elif keys[pygame.K_a]:
-            # "Q" key is pressed: Strafe left
-            player.movement(key_pressed=True, mode="strafing", direction="retrograde")
-        else:
-            # No key pressed: Maintain current velocity (possibly apply friction)
-            player.movement(key_pressed=False)
+            # Check which movement key is pressed and call the appropriate movement method
+            if keys[self.keybindings["up"]]:
+                # "W" key is pressed: Move forward in the direction the player is facing
+                player.handle_thrust_vector(key_pressed=True, mode="normal", direction="prograde")
+            elif keys[pygame.K_s]:
+                # "S" key is pressed: Move backward in the opposite direction of the player’s facing
+                player.handle_thrust_vector(key_pressed=True, mode="normal", direction="retrograde")
+            if keys[pygame.K_d]:
+                # "E" key is pressed: Strafe right
+                player.handle_thrust_vector(key_pressed=True, mode="strafing", direction="prograde")
+            elif keys[pygame.K_a]:
+                # "Q" key is pressed: Strafe left
+                player.handle_thrust_vector(key_pressed=True, mode="strafing", direction="retrograde")
+            else:
+                # No key pressed: Maintain current velocity (possibly apply friction)
+                player.handle_thrust_vector(key_pressed=False)
 
     def handle_fire_effects(self, character, angle=None):
         if angle is not None:  # If an angle is provided (for the player)
@@ -1113,12 +1131,14 @@ class Game:
                 if self.player_alive:
                     dx = self.mouse_pos[0] - self.player.position[0]
                     dy = self.mouse_pos[1] - self.player.position[1]
+                    # angle is the orientation necessary for the player to look at the cursor
                     angle_in_radians = math.atan2(dy, dx)
                     angle_in_degrees = math.degrees(angle_in_radians) + 90
 
                     # Handle keyboard inputs
                     keys = pygame.key.get_pressed()
-                    self.movement_handler(keys)
+                    # TODO add some thing that lets one change the mode dynamically in game
+                    self.movement_handler(keys, "arcade", angle=angle_in_degrees)
 
                     # Spawn enemies periodically
                     self.spawn_enemy()
@@ -1136,9 +1156,9 @@ class Game:
                     if left_mouse_held_down:
                         self.handle_fire_effects(self.player, angle_in_degrees)
 
-                    # Update player orientation when right mouse button is held down
+                    """# Update player orientation when right mouse button is held down
                     if right_mouse_held_down:
-                        self.player.orientation = angle_in_degrees
+                        self.player.orientation = angle_in_degrees"""
 
                 # If the player is not alive, switch the game state to game over
                 elif not self.player_alive:

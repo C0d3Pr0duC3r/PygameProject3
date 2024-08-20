@@ -489,7 +489,6 @@ class Actor(Figure):
     # method for player and npcs
     def trigger_pull(self):
         self.current_weapon = self.weapons[self.weapon_index]
-        print(self.current_weapon.name, self.current_weapon.projectile_velocity)
         if self.weapons:
 
             projectile_type = self.type_ + "projectile"
@@ -559,7 +558,7 @@ class Player(Actor):
 
         }
 
-    def movement(self, key_pressed, mode="normal", direction="prograde"):
+    def handle_thrust_vector(self, key_pressed, mode="normal", direction="prograde"):
         """
         Update the player's position based on their velocity, acceleration, and direction.
 
@@ -587,6 +586,14 @@ class Player(Actor):
                     acceleration_y = self.acceleration * math.sin(angle_in_radians)
                     self.velocity[0] -= acceleration_x
                     self.velocity[1] -= acceleration_y
+
+                # Cap the velocity to max_velocity
+                velocity_magnitude = math.sqrt(self.velocity[0] ** 2 + self.velocity[1] ** 2)
+                if velocity_magnitude > self.max_velocity:
+                    scale = self.max_velocity / velocity_magnitude
+                    self.velocity[0] *= scale
+                    self.velocity[1] *= scale
+
         elif mode == "strafing":
             # Strafing mode: apply thrust to the sides
             if key_pressed:
@@ -603,12 +610,12 @@ class Player(Actor):
                     self.velocity[0] += acceleration_x
                     self.velocity[1] += acceleration_y
 
-        # Cap the velocity to max_velocity
-        velocity_magnitude = math.sqrt(self.velocity[0] ** 2 + self.velocity[1] ** 2)
-        if velocity_magnitude > self.max_velocity:
-            scale = self.max_velocity / velocity_magnitude
-            self.velocity[0] *= scale
-            self.velocity[1] *= scale
+                # Cap the velocity to max_velocity times two because of some reason strafing is just half as fast
+                velocity_magnitude = math.sqrt(self.velocity[0] ** 2 + self.velocity[1] ** 2)
+                if velocity_magnitude > self.max_velocity * 2:
+                    scale = self.max_velocity * 2 / velocity_magnitude
+                    self.velocity[0] *= scale
+                    self.velocity[1] *= scale
 
         # Apply friction when no key is pressed
         if not key_pressed:
@@ -622,6 +629,39 @@ class Player(Actor):
 
         # Update the player's rect (or any other related attributes)
         self.update_rect()
+
+    def arcade_movement(self, key_pressed, direction):
+        if direction == "up":
+            self.velocity[1] -= self.acceleration
+        elif direction == "down":
+            self.velocity[1] += self.acceleration
+
+        if direction == "left":
+            self.velocity[0] -= self.acceleration
+        elif direction == "right":
+            self.velocity[0] += self.acceleration
+
+        # Cap the velocity to max_velocity
+        velocity_magnitude = math.sqrt(self.velocity[0] ** 2 + self.velocity[1] ** 2)
+        if velocity_magnitude > self.max_velocity:
+            scale = self.max_velocity / velocity_magnitude
+            self.velocity[0] *= scale
+            self.velocity[1] *= scale
+
+
+        # Apply friction when no key is pressed
+        if not key_pressed:
+            friction = 0.98  # Example friction value
+            self.velocity[0] *= friction
+            self.velocity[1] *= friction
+
+        # Update the position based on the current velocity
+        self.position[0] += self.velocity[0]
+        self.position[1] += self.velocity[1]
+
+        # Update the player's rect (or any other related attributes)
+        self.update_rect()
+
 
     def draw_locking_markers(self, enemy_figures, window):
         # Line thickness for the rectangle outline
@@ -695,6 +735,46 @@ class Player(Actor):
         # Ensure the ammo doesn't exceed the max limit
         current_ammo = min(self.ammo[ammo_key].max, current_ammo)
         self.ammo[ammo_key] = self.ammo[ammo_key]._replace(current_ammo=current_ammo)
+
+    def debug_visuals(self, window, frame):
+        # Vary the hue between 0 and 1
+        hue = (frame % 360) / 360.0  # Convert frame count to a value between 0 and 1
+        saturation, value = 1, 1  # Full saturation and value for a vibrant color
+
+        # Convert HSV to RGB
+        rgb_fractional = colorsys.hsv_to_rgb(hue, saturation, value)  # Returns colors in range [0, 1]
+        rgb = tuple(int(c * 255) for c in rgb_fractional)  # Convert to range [0, 255]
+        # draw position point
+        pygame.draw.circle(window, (255, 0, 0), (int(self.position[0]), int(self.position[1])), 5)
+        # Draw hitbox
+        pygame.draw.rect(window, (0, 255, 0), self.rect, 2)
+
+        # Calculate the length of the velocity vector
+        length = math.sqrt(self.velocity[0] ** 2 + self.velocity[1] ** 2) * 50  # Scale factor for visual representation
+
+        # Normalize the velocity vector to get the direction
+        velocity_magnitude = math.sqrt(self.velocity[0] ** 2 + self.velocity[1] ** 2)
+        if velocity_magnitude != 0:
+            direction_x = self.velocity[0] / velocity_magnitude
+            direction_y = self.velocity[1] / velocity_magnitude
+        else:
+            direction_x, direction_y = 0, 0  # No movement, so no direction
+
+        # Calculate the end position based on the velocity direction
+        end_x = int(self.position[0] + direction_x * length)
+        end_y = int(self.position[1] + direction_y * length)
+
+        pygame.draw.line(window, (255, 0, 0), (int(self.position[0]), int(self.position[1])), (end_x, end_y), 8)
+        # Draw mask
+        window.blit(self.mask_image,
+                    [self.position[0] + 0.5 * self.dimensions[0], self.position[1] + 0.5 * self.dimensions[1]])
+        # because for npcs for some godforsaken reason the elements in the position are becoming a float at some point
+        figure_position = [int(coord) for coord in self.position]
+        # wich would spam the screen with numbers
+        font = pygame.font.Font(None, 32)
+        name_surface = font.render(f"{self.name}; {self.type_}; {figure_position}", False, rgb)
+        name_rect = name_surface.get_rect(topright=self.position)
+        window.blit(name_surface, name_rect)
 
 
 class NPC(Actor):
@@ -886,7 +966,6 @@ class Projectile(Actor):
             self.mask = pygame.mask.from_surface(self.sprite_loader.get_oriented_sprite(self.orientation))
             self.mask_image = self.mask.to_surface()
 
-        # print(f"Projectile created with origin: {self.spawn_position}, max_reach: {self.max_reach}") # debug line
 
     def update_mask(self):
         self.mask = pygame.mask.from_surface(self.sprite_loader.get_oriented_sprite(self.orientation))
@@ -1706,7 +1785,7 @@ missile_mogus.add_potential_drop(missile_launcher_pick_up)
 basic_blaster = Weapon("blaster",
                        25,
                        20,
-                       0.15,
+                       cooldown=0.15,
                        owner=player,
                        sprite_loader=None,
                        max_reach=1000,
@@ -1829,7 +1908,7 @@ debug_gun = Weapon("debug_gun",
                    owner=player)
 
 enemy_blaster = Weapon("enemy blaster", 13, 15, 0.5, sprite_loader=None,
-                       projectile_color=(255, 0, 0), projectile_dimensions=[5, 5], spread=10,
+                       projectile_color=(255, 0, 0), projectile_dimensions=[5, 5], spread=15,
                        max_reach=600, shoot_sound=enemy_blaster_sound, sound_volume=0.3, heat_increase_per_shot=26,
                        max_heat=100,
                        animation=[projectile_explosion])
