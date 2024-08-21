@@ -2,12 +2,24 @@ import pygame
 
 pygame.init()
 
+colors = {
+    "COLOR_INACTIVE": (130, 116, 247),
+    "COLOR_ACTIVE": (14, 3, 110),
+    "BLUE": (0, 0, 255),
+    "BLACK": (0, 0, 0),
+    "WHITE": (255, 255, 255),
+    "RED": (255, 0, 0),
+    "GREEN": (0, 255, 0),
+    "DARK_GREEN": (34, 120, 56)
+}
+
 
 class MenuComponent:
-    def __init__(self, name, position, dimensions):
+    def __init__(self, name, position, dimensions, type_=None):
         self.name = name
         self.rect = pygame.Rect(position[0], position[1], dimensions[0], dimensions[1])
         self.hovered = False
+        self.type_ = type_
 
     def handle_event(self, event):
         raise NotImplementedError("This method should be overridden by subclasses")
@@ -28,18 +40,6 @@ class MenuComponent:
         raise NotImplementedError("This method should be overridden by subclasses")
 
 
-colors = {
-    "COLOR_INACTIVE": (130, 116, 247),
-    "COLOR_ACTIVE": (14, 3, 110),
-    "BLUE": (0, 0, 255),
-    "BLACK": (0, 0, 0),
-    "WHITE": (255, 255, 255),
-    "RED": (255, 0, 0),
-    "GREEN": (0, 255, 0),
-    "DARK_GREEN": (34, 120, 56)
-}
-
-
 class MenuBackGround(MenuComponent):
     def __init__(self, name, position, dimensions, color=()):
         super().__init__(name, position, dimensions)
@@ -47,6 +47,7 @@ class MenuBackGround(MenuComponent):
 
     def draw(self, window, selected=False):
         pygame.draw.rect(window, self.color, self.rect)
+
 
 class Button(MenuComponent):
     def __init__(self, name, position, dimensions, text, alignment=None, font=None, tooltip_text=None, font_size=32, color=(0, 255, 0), hover_color=(34, 120, 56), click_function=None):
@@ -60,13 +61,14 @@ class Button(MenuComponent):
         self.click_function = click_function
         self.is_pressable = True
         self.alignment = alignment
-        self.type_ = "button"
+        self.type_ = "Button"
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEMOTION:
             self.hovered = self.rect.collidepoint(event.pos)
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(event.pos) and self.click_function:
+                print(self.click_function, type(self.click_function))  # debug line
                 self.click_function()
             elif self.rect.collidepoint(event.pos) and not self.click_function:
                 print(f"{self.name} has no function")
@@ -115,6 +117,7 @@ class Button(MenuComponent):
             position=data['position'],
             dimensions=data['dimensions'],
             text=data['text'],
+            tooltip_text=data['tooltip_text'],
             alignment=data.get('alignment'),
             font_size=data.get('font_size', 32),
             color=tuple(data.get('color', (0, 255, 0))),

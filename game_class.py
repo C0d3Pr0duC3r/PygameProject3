@@ -143,6 +143,12 @@ class Stage:
         self.boss_spawned = boss_spawned
 
 
+class MenuLoader:
+    # use the from json method of the custommenu class to create menus from json files
+
+    pass
+
+
 class Game:
     def __init__(self, caption, window_dimensions, cursor, player_template=None, enemies=None, bosses=None, fps=60,
                  background_image_path=None, scale_background=True, game_font=None,
@@ -197,9 +203,9 @@ class Game:
         self.kill_streak_counter = 0
         self.bonus_score = 0
 
-        self.menus = {
-            # TODO be able to generate menus from json files
-        }
+        # Load the menu from JSON
+        self.pause_menu = CustomMenu.from_json("saved_menus/Pause_Menu.json")
+        self.map_click_functions()
 
         self.keybindings = {
             "up": pygame.K_w,
@@ -237,6 +243,19 @@ class Game:
             self.figures[0].y_limit = self.window_dimensions[1]
             return self.figures[0]
         return None
+
+    def map_click_functions(self):
+        for menu_component in self.pause_menu.components:
+            # I am not using isinstance here because i am not able to make it work because all
+            # menu components created via json are a menu component and not their specific button or whatever
+            # so type_ it is
+            if menu_component.type_ == "Button":
+                if menu_component.click_function == "playing":
+                    print("Mapping 'start_game' function")
+                    menu_component.click_function = lambda: self.change_state("playing")
+                elif menu_component.click_function == "open_options":
+                    print("Mapping 'open_options' function")
+                    menu_component.click_function = lambda: self.change_state("options")
 
     def random_chance(self, odds):
         """Return True with a 1/odds chance."""
@@ -702,9 +721,6 @@ class Game:
         x2, y2 = self.mouse_pos
         distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
         return distance < threshold
-########################
-# collision block
-########################
 
     def broad_phase_collision_check(self, entity1, entity2):
         if entity1.rect.colliderect(entity2.rect):
@@ -730,7 +746,7 @@ class Game:
 
         return overlap is not None
 
-    def check_boundary(self, entity): #TODO change the limit to be whatever the screen is
+    def check_boundary(self, entity):
         if entity.position[0] > entity.x_limit:
             entity.position[0] = entity.x_limit
         if entity.position[0] < 0:
@@ -857,10 +873,6 @@ class Game:
         self.player_enemy_projectile_collision_handler()
         self.remove_dead_figures_and_projectiles()
 
-########################
-# collision block
-########################
-
     def movement_handler(self, keys, mode, angle=None):
         """Handles movement and orientation behaviors according to key inputs."""
 
@@ -928,8 +940,6 @@ class Game:
             if projectile.projectile_max_reach():
                 # Mark the projectile for removal from the game
                 projectile.marked_for_death = True
-
-
 
     def npc_behaviour_manager(self): # TODO maybe implement in-fighting or some npc that fights alongside the player
 
@@ -1011,7 +1021,6 @@ class Game:
         left_mouse_held_down = False  # Flag to track if the left mouse button is held down
         right_mouse_held_down = False  # Flag to track if the right mouse button is held down
         self.add_figure(self.player_template) # add the player to the field
-
         current_locked_target = None
 
         # Main game loop
@@ -1057,7 +1066,6 @@ class Game:
                         input_box.draw(self.window)
                         input_box.update()
 
-                self.cursor.draw_cursor(self.window)
 
             if self.state == "shop":
                 self.create_buttons()
@@ -1077,9 +1085,9 @@ class Game:
                         is_running = False
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_SPACE:
-                            self.state = "playing"  # Start the game when space is pressed
+                            self.change_state("playing")  # Start the game when space is pressed
                         if event.key == pygame.K_ESCAPE:
-                            self.state = "playing"
+                            self.change_state("playing")
                     for button in self.buttons:
                         button.handle_event(event)
                         button.is_purchaseable = self.player.coins >= button.upgrade.cost
@@ -1087,10 +1095,8 @@ class Game:
                             button.upgrade.used_up = True  # is that even necessary? I cannot remember
                             self.buttons.remove(button)
 
-                self.cursor.draw_cursor(self.window)
 
             if self.state == "pause":
-                self.draw_pause_screen()
 
                 # Process events on the start screen
                 for event in pygame.event.get():
@@ -1098,9 +1104,13 @@ class Game:
                         is_running = False
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_SPACE:
-                            self.state = "playing"  # Start the game when space is pressed
+                            self.change_state("playing")  # Start the game when space is pressed
                         if event.key == pygame.K_ESCAPE:
                             is_running = False
+
+                    self.pause_menu.update(event)
+                    self.draw_pause_screen()
+                    self.pause_menu.draw(self.window)
 
             # Main game-playing state
             if self.state == "playing":
@@ -1311,5 +1321,7 @@ class Game:
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_ESCAPE:
                             is_running = False
+            # display custom cursor
+            self.cursor.draw_cursor(self.window)
 
         pygame.quit()  # Quit the game when the main loop exits

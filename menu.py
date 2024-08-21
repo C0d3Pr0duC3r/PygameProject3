@@ -11,13 +11,14 @@ class CustomMenu:
         self.dimensions = dimensions
         self.color = color
 
-    def handle_event(self, event):
+    """def handle_event(self, event):
         for comp in self.components:
-            comp.handle_event(event)
+            comp.handle_event(event)"""
 
-    def update(self):
+    def update(self, event):
         for comp in self.components:
             comp.update()
+            comp.handle_event(event)
 
     def return_dimensions_and_position(self):
         dimensions = (self.position[0], self.position[1], self.dimensions[0], self.dimensions[1])
@@ -40,8 +41,11 @@ class CustomMenu:
     def from_json(cls, file_path):
         with open(file_path, 'r') as f:
             data = json.load(f)
-            menu = cls()
-            for component_data in data:
+            dimensions = data.get('dimensions', [800, 600])  # Default dimensions if not provided
+            color = data.get('color', [0, 0, 255])  # Default color if not provided
+            position = data.get('position', [0, 0])  # Default position if not provided
+            menu = cls(dimensions, position, color)
+            for component_data in data['components']:
                 component_type = component_data.pop('type')
                 if component_type == 'Button':
                     menu.components.append(Button.from_dict(component_data))
