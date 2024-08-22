@@ -54,7 +54,6 @@ class Button:
             self.hovered = self.rect.collidepoint(event.pos)
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(event.pos):
-                print("Button clicked!")
                 self.click_function()
                 if self.is_purchaseable:
                     self.upgrade.cost = int(self.upgrade.cost*1.2) # so the price does not increase if the upgrade can't be bought
@@ -153,6 +152,7 @@ class Game:
     def __init__(self, caption, window_dimensions, cursor, player_template=None, enemies=None, bosses=None, fps=60,
                  background_image_path=None, scale_background=True, game_font=None,
                  player_unkillable=False, debug_mode=False, animation_templates=None):
+
         self.is_running = True
         self.caption = caption
         self.state = "main_menu"
@@ -205,6 +205,7 @@ class Game:
         self.bonus_score = 0
 
         # options:
+        self.enemies_active = True
         self.movement_mode = "arcade"
         self.keybindings = {
             "up": pygame.K_w,
@@ -847,7 +848,6 @@ class Game:
                 if figure.type_ == "player" and projectile.type_ in ["enemyprojectile", "boss_enemyprojectile", "shrapnel"]:
                     # Check collision between player and enemy projectiles
                     if self.check_collision(figure, projectile):
-                        print(f"first block: Collision detected between {figure.name} and {projectile.name}")
                         if not self.player_unkillable:
                             if projectile.hit(figure):
                                 projectile.marked_for_death = True
@@ -855,7 +855,6 @@ class Game:
                 elif figure.type_ in ["enemy", "boss_enemy"] and projectile.type_ in ["playerprojectile", "shrapnel"]:
                     # Check collision between enemy and player projectiles
                     if self.check_collision(figure, projectile):
-                        print(f"second block: Collision detected between {figure.name} and {projectile.name}")
                         if projectile.hit(figure):
                             """projectile.hit calls the figure.get_hit method that manages the dealing of damage
                             as well as the determination if the figure is dead"""
@@ -1225,13 +1224,13 @@ class Game:
                     self.movement_handler(keys, angle=angle_in_degrees)
 
                     # Spawn enemies periodically
-                    self.spawn_enemy()
+                    if self.enemies_active:
+                        self.spawn_enemy()
 
                     # If player has no energy ammo anymore:
                     if self.player.ammo["energy_ammo"].current_ammo == 0:
                         # Check if there is an existing energy ammo item on the screen
                         energy_ammo_exists = any(item.name == "Energy_Ammo_pick_up" for item in self.items)
-                        print(f"energyammo exists:{energy_ammo_exists}")
                         # If there is no energy ammo item, spawn one
                         if not energy_ammo_exists:
                             self.spawn_item(self.item_templates[0], spawn_position=self.random_position_on_screen())

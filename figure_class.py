@@ -631,23 +631,24 @@ class Player(Actor):
         self.update_rect()
 
     def arcade_movement(self, key_pressed, direction):
+        # Apply acceleration based on the direction
         if direction == "up":
             self.velocity[1] -= self.acceleration
         elif direction == "down":
             self.velocity[1] += self.acceleration
-
-        if direction == "left":
+        elif direction == "left":
             self.velocity[0] -= self.acceleration
         elif direction == "right":
             self.velocity[0] += self.acceleration
 
-        # Cap the velocity to max_velocity
+        # Calculate the velocity magnitude
         velocity_magnitude = math.sqrt(self.velocity[0] ** 2 + self.velocity[1] ** 2)
+
+        # Normalize diagonal movement to maintain consistent speed in all directions
         if velocity_magnitude > self.max_velocity:
             scale = self.max_velocity / velocity_magnitude
             self.velocity[0] *= scale
             self.velocity[1] *= scale
-
 
         # Apply friction when no key is pressed
         if not key_pressed:
@@ -662,6 +663,11 @@ class Player(Actor):
         # Update the player's rect (or any other related attributes)
         self.update_rect()
 
+        # Debugging output to track the velocity
+        if direction in ["up", "down"]:
+            print(f"velocity components when up and down: {self.velocity}, velocity: ")
+        elif direction in ["left", "right"]:
+            print(f"velocity components when left and right: {self.velocity}, velocity: ")
 
     def draw_locking_markers(self, enemy_figures, window):
         # Line thickness for the rectangle outline
@@ -889,8 +895,6 @@ class NPC(Actor):
         angle_in_degrees = math.degrees(angle_in_radians)
         desired_orientation = (angle_in_degrees + 90) % 360
 
-        # Adjust the angle so it works with your game's orientation system
-        # You might need to add or subtract 90 degrees or make other adjustments depending on how your sprites are oriented
         if instant:
             self.orientation = desired_orientation
         else:
@@ -913,7 +917,6 @@ class NPC(Actor):
 
             # Ensure orientation stays between 0 and 359 degrees
             self.orientation %= 360
-
 
     def clone(self):
 
@@ -1671,7 +1674,7 @@ add_projectile_upgrade = Upgrade("add projectile", "adds an additional projectil
 player = Player("player", [300, 300], hit_points=100, shield=0, shield_cap=150, shield_overcharge=100,
                 hit_points_cap=200, hit_point_overcharge=120,
                 sprite_loader=Sprite_sheet_loader_3d(player_model, 100, 0.7), shield_recharge_rate=10,
-                turn_speed=5, max_velocity=8, acceleration=2, x_limit=500, y_limit=500, type_="player", sound_effects=player_sounds,
+                turn_speed=5, max_velocity=10, acceleration=2, x_limit=500, y_limit=500, type_="player", sound_effects=player_sounds,
                 coins=0,
                 available_upgrades=[hp_upgrade_overcharge, shield_upgrade_overcharge, shield_recharge_rate_upgrade,
                                     shield_recharge_delay_upgrade]

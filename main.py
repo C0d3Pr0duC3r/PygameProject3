@@ -18,7 +18,7 @@ game = Game("sheesh", [screen_dimensions[0]-variable, screen_dimensions[1]-varia
 game.map_click_functions()
 
 game.add_item_template(energy_ammo_item_template, healing_item_template)
-
+#game.enemies_active = False
 #game.state = "playing"
 
 if resource_logging:
