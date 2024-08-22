@@ -744,8 +744,10 @@ class Player(Actor):
         # Convert HSV to RGB
         rgb_fractional = colorsys.hsv_to_rgb(hue, saturation, value)  # Returns colors in range [0, 1]
         rgb = tuple(int(c * 255) for c in rgb_fractional)  # Convert to range [0, 255]
-        # draw position point
+
+        # Draw position point
         pygame.draw.circle(window, (255, 0, 0), (int(self.position[0]), int(self.position[1])), 5)
+
         # Draw hitbox
         pygame.draw.rect(window, (0, 255, 0), self.rect, 2)
 
@@ -764,16 +766,24 @@ class Player(Actor):
         end_x = int(self.position[0] + direction_x * length)
         end_y = int(self.position[1] + direction_y * length)
 
+        # Draw the velocity vector as a line
         pygame.draw.line(window, (255, 0, 0), (int(self.position[0]), int(self.position[1])), (end_x, end_y), 8)
+
         # Draw mask
         window.blit(self.mask_image,
                     [self.position[0] + 0.5 * self.dimensions[0], self.position[1] + 0.5 * self.dimensions[1]])
-        # because for npcs for some godforsaken reason the elements in the position are becoming a float at some point
+
+        # Convert position to integer to avoid float issues and prepare the text for debugging
         figure_position = [int(coord) for coord in self.position]
-        # wich would spam the screen with numbers
-        font = pygame.font.Font(None, 32)
-        name_surface = font.render(f"{self.name}; {self.type_}; {figure_position}", False, rgb)
+
+        # Render position and velocity information as text
+        font = pygame.font.Font(None, 48)
+        name_surface = font.render(
+            f"{self.name}; {self.type_}; Pos: {figure_position}; Vel: {[round(v, 2) for v in self.velocity]}", False,
+            rgb)
         name_rect = name_surface.get_rect(topright=self.position)
+
+        # Draw the text next to the figure
         window.blit(name_surface, name_rect)
 
 
@@ -856,12 +866,13 @@ class NPC(Actor):
 
         return lead_pos
 
-    def look_at(self, target, window, instant=False, lead_target=True):
+    def lead_target(self, target, window, debug_mode, instant=False, lead_target=True):
 
         if lead_target and self.current_weapon:
             lead_target_pos = self.calculate_lead_target(target.position, target.velocity,
                                         self.current_weapon.projectile_velocity)
-            pygame.draw.circle(window, (0, 255, 0), lead_target_pos, 5) # debug line
+            if debug_mode:
+                pygame.draw.circle(window, (0, 255, 0), lead_target_pos, 5) # debug line
 
             # Calculate the change in x and y
             dx = lead_target_pos[0] - self.position[0]
@@ -1489,7 +1500,7 @@ class HomingWeapon(Weapon):
                 deviation = (-self.spread / 2) + (self.spread * random.random())
                 new_orientation = orientation + deviation
                 projectile = HomingProjectile(name=self.name + "_projectile", damage=self.damage,
-                                              orientation=new_orientation, projectile_velocity=self.projectile_velocity,
+                                              orientation=new_orientation, velocity=self.projectile_velocity,
                                               position=origin_position, sprite_loader=self.sprite_loader,
                                               max_reach=self.max_reach, max_pierce=self.max_pierce,
                                               animation=self.animation, locked_target=self.locked_target,

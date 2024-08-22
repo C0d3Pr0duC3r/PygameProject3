@@ -153,8 +153,9 @@ class Game:
     def __init__(self, caption, window_dimensions, cursor, player_template=None, enemies=None, bosses=None, fps=60,
                  background_image_path=None, scale_background=True, game_font=None,
                  player_unkillable=False, debug_mode=False, animation_templates=None):
+        self.is_running = True
         self.caption = caption
-        self.state = "start_screen"
+        self.state = "main_menu"
         pygame.display.set_caption(caption)
         self.window_dimensions = window_dimensions
         self.player_alive = True
@@ -177,7 +178,7 @@ class Game:
             self.background_image = pygame.image.load(background_image_path)
         else:
             self.background_image = None
-        self.window = self.window = pygame.display.set_mode(window_dimensions, pygame.FULLSCREEN)
+        self.window = pygame.display.set_mode(window_dimensions, pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
         self.fps = fps
         self.spawn_queue = []
@@ -203,16 +204,21 @@ class Game:
         self.kill_streak_counter = 0
         self.bonus_score = 0
 
-        # Load the menu from JSON
-        self.menus = {"pause_menu": CustomMenu.from_json("saved_menus/Pause_Menu.json")}
-        self.map_click_functions()
-
+        # options:
+        self.movement_mode = "arcade"
         self.keybindings = {
             "up": pygame.K_w,
             "down": pygame.K_s,
             "left": pygame.K_a,
             "right": pygame.K_d
-                            }
+        }
+
+        # Load the menu from JSON
+        self.menus = {"pause_menu": CustomMenu.from_json("saved_menus/Pause_Menu.json"),
+                      "main_menu": CustomMenu.from_json("saved_menus/Main_Menu.json"),
+                      "options_menu": CustomMenu.from_json("saved_menus/Options_Menu.json")}
+        self.map_click_functions()
+
 
         # Define stages
         self.stages = [
@@ -244,19 +250,69 @@ class Game:
             return self.figures[0]
         return None
 
+    def quit_game(self):
+        self.is_running = False
+
     def map_click_functions(self):
+        # Does also rearrange the components and the menus to look centered
         for menu_key, menu in self.menus.items():
+            # change the menu rects to match the screen
+            menu.rect.width, menu.rect.height = self.window.get_width(), self.window.get_height()
+
             for menu_component in menu.components:
                 # I am not using isinstance here because i am not able to make it work because all
                 # menu components created via json are a menu component and not their specific button or whatever
                 # so type_ it is
                 if menu_component.type_ == "Button":
-                    if menu_component.click_function == "playing":
+                    # Center the button horizontally on the screen
+                    menu_component.rect.x = (self.window.get_width() - menu_component.rect.width) // 2
+                    if menu_component.click_function == "start_screen":
                         print("Mapping 'start_game' function")
-                        menu_component.click_function = lambda: self.change_state("playing")
+                        menu_component.click_function = lambda: self.change_state("start_screen")
+
+                    elif menu_component.click_function == "main_menu":
+                        print("Mapping 'main_menu' function")
+                        menu_component.click_function = lambda: self.change_state("main_menu")
+
                     elif menu_component.click_function == "open_options":
                         print("Mapping 'open_options' function")
                         menu_component.click_function = lambda: self.change_state("options")
+
+                    elif menu_component.click_function == "quit_game":
+                        menu_component.click_function = self.quit_game
+
+                    elif menu_component.click_function == "playing":
+                        menu_component.click_function = lambda: self.change_state("playing")
+
+                    elif menu_component.click_function == "toggle_movement_mode":
+                        print("Mapping 'toggle_movement_mode' function")
+                        menu_component.click_function = self.movement_mode_toggler
+                        menu_component.tooltip_text = f"current mode: {self.movement_mode}"
+
+                    elif menu_component.click_function == "toggle_debug_mode":
+                        print("Mapping 'toggle_debug_mode' function")
+                        menu_component.click_function = self.debug_mode_toggler
+
+
+    def debug_mode_toggler(self):
+        if self.debug_mode:
+            self.debug_mode = False
+            self.player_unkillable = False
+        else:
+            self.debug_mode = True
+            self.player_unkillable = True
+
+    def movement_mode_toggler(self):
+        # toggle between movement modes
+        if self.movement_mode == "arcade":
+            self.movement_mode = "thrust_vector"
+        else:
+            self.movement_mode = "arcade"
+
+        # Update tooltip text with the new movement mode
+        for component in self.menus["options_menu"].components:
+            if component.name == "toggle_movement_mode":
+                component.tooltip_text = f"current mode: {self.movement_mode}"
 
     def random_chance(self, odds):
         """Return True with a 1/odds chance."""
@@ -874,14 +930,14 @@ class Game:
         self.player_enemy_projectile_collision_handler()
         self.remove_dead_figures_and_projectiles()
 
-    def movement_handler(self, keys, mode, angle=None):
+    def movement_handler(self, keys, angle=None):
         """Handles movement and orientation behaviors according to key inputs."""
 
         player = self.player  # This retrieves the player from the figures list using the property
 
         if not player:  # If there's no player, we don't need to process movement
             return
-        if mode == "arcade":
+        if self.movement_mode == "arcade":
             player.orientation = angle
             if keys[self.keybindings["up"]]:
                 player.arcade_movement(key_pressed=True, direction="up")
@@ -891,8 +947,10 @@ class Game:
                 player.arcade_movement(key_pressed=True, direction="left")
             elif keys[self.keybindings["right"]]:
                 player.arcade_movement(key_pressed=True, direction="right")
+            else:
+                player.arcade_movement(key_pressed=False, direction=None)
 
-        if mode == "thrust_vector":
+        if self.movement_mode == "thrust_vector":
             # Orient the player to look at the mouse position
             player.look_at(self.mouse_pos)
 
@@ -946,7 +1004,7 @@ class Game:
 
         for npc in self.figures:
             if isinstance(npc, NPC) and self.player:  # Ensure it's an NPC and player exists
-                npc.look_at(self.player, window=self.window)
+                npc.lead_target(self.player, debug_mode=self.debug_mode, window=self.window)
                 player_in_attack_range = npc.is_in_range(target=self.player)
                 if player_in_attack_range:
                     current_weapon = npc.weapons[npc.weapon_index]
@@ -1014,7 +1072,62 @@ class Game:
                 x_position += 200 # Increment the X position after processing all upgrades of a weapon
                 y_position = 100  # Reset Y position for the next column
 
-    def run(self, is_running):
+    def handle_start_screen(self):
+        """Handles the start screen logic, including drawing and processing events."""
+        self.draw_start_screen()
+
+        for event in pygame.event.get():
+            self.process_start_screen_event(event)
+
+        self.update_input_boxes()
+        self.draw_input_boxes()
+
+    def process_start_screen_event(self, event):
+        """Processes events specifically for the start screen."""
+        if event.type == pygame.QUIT:
+            self.quit_game()
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                self.check_name_prompt()
+
+        for input_box in self.input_boxes:
+            input_box.handle_event(event)
+
+    def check_name_prompt(self):
+        """Validates the name entered in the input box."""
+        for input_box in self.input_boxes:
+            if input_box.name == "name_prompt":
+                if input_box.text.strip() != "" and len(input_box.text) < 10:
+                    self.player.name = input_box.text
+                    self.change_state("playing")
+                else:
+                    # Handle case where name is empty or only spaces
+                    print("Please enter a valid name.")
+
+    def update_input_boxes(self):
+        """Updates the state of input boxes."""
+        for input_box in self.input_boxes:
+            input_box.update()
+
+    def draw_input_boxes(self):
+        """Draws the input boxes on the screen."""
+        for input_box in self.input_boxes:
+            input_box.draw(self.window)
+
+    def handle_main_menu_screen(self):
+        """Handles the start screen logic, including drawing and processing events."""
+
+        for event in pygame.event.get():
+            self.menus["main_menu"].update(event)
+        self.menus["main_menu"].draw(self.window)
+
+    def handle_options_menu_screen(self):
+        for event in pygame.event.get():
+            self.menus["options_menu"].update(event)
+        self.menus["options_menu"].draw(self.window)
+
+    def run(self):
         """
         The run method handles the main game loop logic.
         """
@@ -1025,7 +1138,7 @@ class Game:
         current_locked_target = None
 
         # Main game loop
-        while is_running:
+        while self.is_running:
             pygame.display.update()
             # Hide the system cursor
             pygame.mouse.set_visible(False)
@@ -1040,36 +1153,13 @@ class Game:
 
             # Display the start screen
             if self.state == "start_screen":
-                self.draw_start_screen()
-
-                # Process events on the start screen
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        is_running = False
-
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_RETURN:
-
-                            for input_box in self.input_boxes:
-                                if input_box.name == "name_prompt":
-                                    if input_box.text.strip() != "" and len(input_box.text) < 10:
-                                        self.player.name = input_box.text
-                                        self.change_state("playing")
-                                    else:
-                                        # Handle case where name is empty or only spaces
-                                        print("Please enter a valid name.")
-
-                    for input_box in self.input_boxes:
-                        input_box.handle_event(event)
-
-                for input_box in self.input_boxes:
-                    if input_box.name == "name_prompt":
-                        input_box.draw(self.window)
-                        input_box.update()
+                self.handle_start_screen()
 
             if self.state == "main_menu":
-                pass
+                self.handle_main_menu_screen()
 
+            if self.state == "options":
+                self.handle_options_menu_screen()
 
             if self.state == "shop":
                 self.create_buttons()
@@ -1086,7 +1176,7 @@ class Game:
 
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        is_running = False
+                        self.quit_game()
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_SPACE:
                             self.change_state("playing")  # Start the game when space is pressed
@@ -1105,12 +1195,12 @@ class Game:
                 # Process events on the start screen
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        is_running = False
+                        self.quit_game()
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_SPACE:
                             self.change_state("playing")  # Start the game when space is pressed
                         if event.key == pygame.K_ESCAPE:
-                            is_running = False
+                            self.quit_game()
 
                     self.menus["pause_menu"].update(event)
                     self.draw_pause_screen()
@@ -1118,8 +1208,6 @@ class Game:
 
             # Main game-playing state
             if self.state == "playing":
-                print(self.frame_counter)
-                # print(f"-"*12)
                 self.frame_counter += 1
 
                 enemy_figures = [figure for figure in self.figures if figure.type_ in ["enemy", "boss_enemy"]]
@@ -1134,7 +1222,7 @@ class Game:
                     # Handle keyboard inputs
                     keys = pygame.key.get_pressed()
                     # TODO add some thing that lets one change the mode dynamically in game
-                    self.movement_handler(keys, "arcade", angle=angle_in_degrees)
+                    self.movement_handler(keys, angle=angle_in_degrees)
 
                     # Spawn enemies periodically
                     self.spawn_enemy()
@@ -1163,7 +1251,7 @@ class Game:
                 # Handle game events
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        is_running = False
+                        self.quit_game()
 
                     if event.type == pygame.MOUSEBUTTONDOWN:
                         if event.button == 1:  # Left mouse button
@@ -1193,7 +1281,7 @@ class Game:
                                 self.player.weapon_index = index
 
                         if event.key == pygame.K_p or event.key == pygame.K_ESCAPE:
-                            self.state = "pause"
+                            self.change_state("pause")
                         if event.key == pygame.K_TAB:
                             self.state = "shop"
                         if current_player_weapon.type_ == "homing" and event.key == pygame.K_r:
@@ -1308,12 +1396,12 @@ class Game:
 
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        is_running = False
+                        self.quit_game()
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_SPACE:
                             self.state = "display_highscore"
                         if event.key == pygame.K_ESCAPE:
-                            is_running = False
+                            self.quit_game()
 
             if self.state == "display_highscore":
                 self.high_score_handler()
@@ -1321,10 +1409,10 @@ class Game:
 
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        is_running = False
+                        self.quit_game()
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_ESCAPE:
-                            is_running = False
+                            self.quit_game()
             # display custom cursor
             self.cursor.draw_cursor(self.window)
 

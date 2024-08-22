@@ -19,11 +19,11 @@ game.map_click_functions()
 
 game.add_item_template(energy_ammo_item_template, healing_item_template)
 
-game.state = "playing"
+#game.state = "playing"
 
 if resource_logging:
-    cProfile.run('game.run(True)')
+    cProfile.run('game.run()')
 else:
-    game.run(True)
+    game.run()
 
 

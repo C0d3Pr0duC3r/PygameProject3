@@ -6,7 +6,7 @@
     "components": [
         {
             "type": "Button",
-            "name": "start_game",
+            "name": "start_button",
             "position": [
                 280,
                 148
@@ -28,20 +28,20 @@
                 120,
                 56
             ],
-            "click_function": "playing"
+            "click_function": "start_screen"
         },
         {
             "type": "Button",
             "name": "options_button",
             "position": [
                 280,
-                148
+                204
             ],
             "dimensions": [
                 200,
                 50
             ],
-            "text": "options",
+            "text": "Options",
             "tooltip_text": null,
             "font_size": 32,
             "color": [
@@ -54,7 +54,33 @@
                 120,
                 56
             ],
-            "click_function": null
+            "click_function": "open_options"
+        },
+        {
+            "type": "Button",
+            "name": "quit_button",
+            "position": [
+                280,
+                260
+            ],
+            "dimensions": [
+                200,
+                50
+            ],
+            "text": "Quit Game",
+            "tooltip_text": null,
+            "font_size": 32,
+            "color": [
+                0,
+                255,
+                0
+            ],
+            "hover_color": [
+                34,
+                120,
+                56
+            ],
+            "click_function": "quit_game"
         }
     ]
 }

@@ -10,6 +10,7 @@ class CustomMenu:
         self.selected_button = None
         self.dimensions = dimensions
         self.color = color
+        self.rect = pygame.Rect(position[0], position[1], dimensions[0], dimensions[1])
 
     """def handle_event(self, event):
         for comp in self.components:
@@ -20,12 +21,8 @@ class CustomMenu:
             comp.update()
             comp.handle_event(event)
 
-    def return_dimensions_and_position(self):
-        dimensions = (self.position[0], self.position[1], self.dimensions[0], self.dimensions[1])
-        return dimensions
-
     def draw(self, window):
-        pygame.draw.rect(window, self.color, self.return_dimensions_and_position())
+        pygame.draw.rect(window, self.color, self.rect)
         for comp in self.components:
             comp.draw(window)
 

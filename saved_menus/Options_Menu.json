@@ -6,17 +6,17 @@
     "components": [
         {
             "type": "Button",
-            "name": "resume_button",
+            "name": "resume",
             "position": [
                 280,
                 148
             ],
             "dimensions": [
-                200,
+                250,
                 50
             ],
-            "text": "Resume",
-            "tooltip_text": "resume",
+            "text": "resume",
+            "tooltip_text": null,
             "font_size": 32,
             "color": [
                 0,
@@ -30,18 +30,19 @@
             ],
             "click_function": "playing"
         },
+
         {
             "type": "Button",
-            "name": "options_button",
+            "name": "toggle_movement_mode",
             "position": [
                 280,
                 204
             ],
             "dimensions": [
-                200,
+                250,
                 50
             ],
-            "text": "Options",
+            "text": "Toggle Movement Mode",
             "tooltip_text": null,
             "font_size": 32,
             "color": [
@@ -54,17 +55,17 @@
                 120,
                 56
             ],
-            "click_function": "open_options"
+            "click_function": "toggle_movement_mode"
         },
         {
             "type": "Button",
             "name": "main_menu_button",
             "position": [
                 280,
-                260
+                316
             ],
             "dimensions": [
-                200,
+                250,
                 50
             ],
             "text": "Main_Menu",
@@ -81,6 +82,32 @@
                 56
             ],
             "click_function": "main_menu"
+        },
+        {
+            "type": "Button",
+            "name": "debug_mode",
+            "position": [
+                280,
+                260
+            ],
+            "dimensions": [
+                250,
+                50
+            ],
+            "text": "Toggle Debug Mode",
+            "tooltip_text": null,
+            "font_size": 32,
+            "color": [
+                0,
+                255,
+                0
+            ],
+            "hover_color": [
+                34,
+                120,
+                56
+            ],
+            "click_function": "toggle_debug_mode"
         }
     ]
 }
