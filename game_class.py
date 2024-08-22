@@ -204,7 +204,7 @@ class Game:
         self.bonus_score = 0
 
         # Load the menu from JSON
-        self.pause_menu = CustomMenu.from_json("saved_menus/Pause_Menu.json")
+        self.menus = {"pause_menu": CustomMenu.from_json("saved_menus/Pause_Menu.json")}
         self.map_click_functions()
 
         self.keybindings = {
@@ -245,17 +245,18 @@ class Game:
         return None
 
     def map_click_functions(self):
-        for menu_component in self.pause_menu.components:
-            # I am not using isinstance here because i am not able to make it work because all
-            # menu components created via json are a menu component and not their specific button or whatever
-            # so type_ it is
-            if menu_component.type_ == "Button":
-                if menu_component.click_function == "playing":
-                    print("Mapping 'start_game' function")
-                    menu_component.click_function = lambda: self.change_state("playing")
-                elif menu_component.click_function == "open_options":
-                    print("Mapping 'open_options' function")
-                    menu_component.click_function = lambda: self.change_state("options")
+        for menu_key, menu in self.menus.items():
+            for menu_component in menu.components:
+                # I am not using isinstance here because i am not able to make it work because all
+                # menu components created via json are a menu component and not their specific button or whatever
+                # so type_ it is
+                if menu_component.type_ == "Button":
+                    if menu_component.click_function == "playing":
+                        print("Mapping 'start_game' function")
+                        menu_component.click_function = lambda: self.change_state("playing")
+                    elif menu_component.click_function == "open_options":
+                        print("Mapping 'open_options' function")
+                        menu_component.click_function = lambda: self.change_state("options")
 
     def random_chance(self, odds):
         """Return True with a 1/odds chance."""
@@ -1066,6 +1067,9 @@ class Game:
                         input_box.draw(self.window)
                         input_box.update()
 
+            if self.state == "main_menu":
+                pass
+
 
             if self.state == "shop":
                 self.create_buttons()
@@ -1108,9 +1112,9 @@ class Game:
                         if event.key == pygame.K_ESCAPE:
                             is_running = False
 
-                    self.pause_menu.update(event)
+                    self.menus["pause_menu"].update(event)
                     self.draw_pause_screen()
-                    self.pause_menu.draw(self.window)
+                    self.menus["pause_menu"].draw(self.window)
 
             # Main game-playing state
             if self.state == "playing":

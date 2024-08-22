@@ -1,0 +1,60 @@
+{
+    "dimensions": [
+        800,
+        600
+    ],
+    "components": [
+        {
+            "type": "Button",
+            "name": "start_game",
+            "position": [
+                280,
+                148
+            ],
+            "dimensions": [
+                200,
+                50
+            ],
+            "text": "Start Game",
+            "tooltip_text": "starts the game",
+            "font_size": 32,
+            "color": [
+                0,
+                255,
+                0
+            ],
+            "hover_color": [
+                34,
+                120,
+                56
+            ],
+            "click_function": "playing"
+        },
+        {
+            "type": "Button",
+            "name": "options_button",
+            "position": [
+                280,
+                148
+            ],
+            "dimensions": [
+                200,
+                50
+            ],
+            "text": "options",
+            "tooltip_text": null,
+            "font_size": 32,
+            "color": [
+                0,
+                255,
+                0
+            ],
+            "hover_color": [
+                34,
+                120,
+                56
+            ],
+            "click_function": null
+        }
+    ]
+}
