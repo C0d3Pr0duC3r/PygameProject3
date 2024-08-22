@@ -663,12 +663,6 @@ class Player(Actor):
         # Update the player's rect (or any other related attributes)
         self.update_rect()
 
-        # Debugging output to track the velocity
-        if direction in ["up", "down"]:
-            print(f"velocity components when up and down: {self.velocity}, velocity: ")
-        elif direction in ["left", "right"]:
-            print(f"velocity components when left and right: {self.velocity}, velocity: ")
-
     def draw_locking_markers(self, enemy_figures, window):
         # Line thickness for the rectangle outline
         line_thickness = 2
