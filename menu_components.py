@@ -20,6 +20,8 @@ class MenuComponent:
         self.rect = pygame.Rect(position[0], position[1], dimensions[0], dimensions[1])
         self.hovered = False
         self.type_ = type_
+        self.enabled = True
+
 
     def handle_event(self, event):
         raise NotImplementedError("This method should be overridden by subclasses")
@@ -107,7 +109,7 @@ class Button(MenuComponent):
             'font_size': self.font_size,
             'color': self.color,
             'hover_color': self.hover_color,
-            'click_function': self.click_function
+            'click_function': self.click_function,
         }
 
     @classmethod

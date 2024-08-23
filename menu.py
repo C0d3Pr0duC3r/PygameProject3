@@ -12,10 +12,6 @@ class CustomMenu:
         self.color = color
         self.rect = pygame.Rect(position[0], position[1], dimensions[0], dimensions[1])
 
-    """def handle_event(self, event):
-        for comp in self.components:
-            comp.handle_event(event)"""
-
     def update(self, event):
         for comp in self.components:
             comp.update()
@@ -24,7 +20,8 @@ class CustomMenu:
     def draw(self, window):
         pygame.draw.rect(window, self.color, self.rect)
         for comp in self.components:
-            comp.draw(window)
+            if comp.enabled:
+                comp.draw(window)
 
     """def to_dict(self):
         return {

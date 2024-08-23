@@ -156,6 +156,7 @@ class Game:
         self.is_running = True
         self.caption = caption
         self.state = "main_menu"
+        self.previous_state = "main_menu"
         pygame.display.set_caption(caption)
         self.window_dimensions = window_dimensions
         self.player_alive = True
@@ -293,7 +294,7 @@ class Game:
                     elif menu_component.click_function == "toggle_debug_mode":
                         print("Mapping 'toggle_debug_mode' function")
                         menu_component.click_function = self.debug_mode_toggler
-
+                        menu_component.tooltip_text = f"debug mode is: {self.debug_mode}"
 
     def debug_mode_toggler(self):
         if self.debug_mode:
@@ -302,6 +303,11 @@ class Game:
         else:
             self.debug_mode = True
             self.player_unkillable = True
+
+        # Update tooltip text
+        for component in self.menus["options_menu"].components:
+            if component.name == "toggle_debug_mode":
+                component.tooltip_text = f"debug mode is:  {self.debug_mode}"
 
     def movement_mode_toggler(self):
         # toggle between movement modes
@@ -320,7 +326,9 @@ class Game:
         return random.randint(1, odds) == 1
 
     def change_state(self, state):
+        self.previous_state = self.state
         self.state = state
+        print(f"previous state: {self.previous_state}, new state: {self.state}")
 
     def stage_manager(self):
         current_stage = self.stages[self.stage_index]
@@ -1122,6 +1130,12 @@ class Game:
         self.menus["main_menu"].draw(self.window)
 
     def handle_options_menu_screen(self):
+        for comp in self.menus["options_menu"].components:
+            print(comp.name, comp.enabled)
+            if comp.name == "resume" and self.previous_state == "main_menu":
+                comp.enabled = False
+            else:
+                comp.enabled = True
         for event in pygame.event.get():
             self.menus["options_menu"].update(event)
         self.menus["options_menu"].draw(self.window)
