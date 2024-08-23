@@ -306,7 +306,7 @@ class Game:
 
         # Update tooltip text
         for component in self.menus["options_menu"].components:
-            if component.name == "toggle_debug_mode":
+            if component.name == "debug_mode":
                 component.tooltip_text = f"debug mode is:  {self.debug_mode}"
 
     def movement_mode_toggler(self):
