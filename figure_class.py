@@ -1956,6 +1956,7 @@ enemy_rail_gun = Weapon("enemy rail gun", damage=100, projectile_velocity=30, co
 # ===============================
 
 player.add_weapon(basic_blaster, missile_launcher)
+player.coins = 1000
 
 scout_enemy.add_weapon(enemy_blaster)
 

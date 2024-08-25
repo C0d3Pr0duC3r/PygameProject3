@@ -770,6 +770,13 @@ class Game:
         random_pos_on_screen = [random.randint(50, self.window_dimensions[0] - 50), random.randint(50, self.window_dimensions[1] - 50)]
         return random_pos_on_screen
 
+    def return_distance(self, obj1, obj2):
+        x1, y1 = obj1.position
+        x2, y2 = obj2.position
+        distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+        return distance
+
+
     def spawn_item(self, *items, spawn_position):
         # If there are multiple items, choose one randomly
         if len(items) > 1:
@@ -782,11 +789,11 @@ class Game:
         self.add_item(new_item)
         new_item.override_position(spawn_position)
 
-    def is_nearing(self, threshold): # unused
+    """def is_nearing(self, threshold): # unused
         x1, y1 = self.player.position
         x2, y2 = self.mouse_pos
         distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-        return distance < threshold
+        return distance < threshold"""
 
     def broad_phase_collision_check(self, entity1, entity2):
         if entity1.rect.colliderect(entity2.rect):
@@ -1148,7 +1155,6 @@ class Game:
         left_mouse_held_down = False  # Flag to track if the left mouse button is held down
         right_mouse_held_down = False  # Flag to track if the right mouse button is held down
         self.add_figure(self.player_template) # add the player to the field
-        current_locked_target = None
 
         # Main game loop
         while self.is_running:
@@ -1234,7 +1240,6 @@ class Game:
 
                     # Handle keyboard inputs
                     keys = pygame.key.get_pressed()
-                    # TODO add some thing that lets one change the mode dynamically in game
                     self.movement_handler(keys, angle=angle_in_degrees)
 
                     # Spawn enemies periodically
@@ -1253,9 +1258,30 @@ class Game:
                     if left_mouse_held_down:
                         self.handle_fire_effects(self.player, angle_in_degrees)
 
-                    """# Update player orientation when right mouse button is held down
+                    # Update player orientation when right mouse button is held down
                     if right_mouse_held_down:
-                        self.player.orientation = angle_in_degrees"""
+                        self.player.orientation = angle_in_degrees
+                    # handle homing weapons
+                    if current_player_weapon.type_ == "homing":
+                        player.radar_active = True
+                        closest_enemy = None
+                        closest_distance = float('inf')  # Start with a very large distance
+
+                        for figure in self.figures:
+                            if figure.type_ in ["enemy", "boss_enemy"]:
+                                distance = self.return_distance(player, figure)
+                                if distance < closest_distance:
+                                    closest_distance = distance
+                                    closest_enemy = figure
+
+                            if closest_enemy:
+                                # Set the closest enemy as the target for the homing weapon
+                                player.current_target = closest_enemy
+                                current_player_weapon.set_target(closest_enemy)
+                                # Additional code to guide the homing weapon toward the target can go here
+                        else:
+                            player.radar_active = False
+                            player.current_target = None  # Clear the target when not using a homing weapon
 
                 # If the player is not alive, switch the game state to game over
                 elif not self.player_alive:
@@ -1297,14 +1323,19 @@ class Game:
                             self.change_state("pause")
                         if event.key == pygame.K_TAB:
                             self.state = "shop"
-                        if current_player_weapon.type_ == "homing" and event.key == pygame.K_r:
-                            """If the radar is active the red rectangles get DRAWN over all enemies in enemy_figures"""
+
+
+
+
+
+                        """if current_player_weapon.type_ == "homing" and event.key == pygame.K_r:
+                            # If the radar is active the red rectangles get DRAWN over all enemies in enemy_figures
                             if not self.player.radar_active:
                                 self.player.radar_active = True
                             else:
-                                self.player.radar_active = False
+                                self.player.radar_active = False"""
 
-                        if isinstance(current_player_weapon, HomingWeapon) and self.player.radar_active and event.key == pygame.K_t and enemy_figures:
+                        """if isinstance(current_player_weapon, HomingWeapon) and self.player.radar_active and event.key == pygame.K_t and enemy_figures:
 
                             # Wrap around if the index exceeds the length of enemy list
                             if self.player.target_index >= len(enemy_figures):
@@ -1316,7 +1347,7 @@ class Game:
                             # Increment the target index
                             self.player.target_index += 1
                         elif not enemy_figures:
-                            current_locked_target = None  # TODO HUH?
+                            current_locked_target = None"""
 
                 # Draw the game background
                 self.draw_background(self.window, self.background_image)
@@ -1347,7 +1378,7 @@ class Game:
                             weapon.cool_down()
 
                     # Handle homing weapon targeting
-                    if figure.type_ == "player" and current_player_weapon.type_ == "homing" and self.player.radar_active:
+                    if figure.type_ == "player" and current_player_weapon.type_ == "homing":
                         # Draw locking markers for enemies
                         self.player.draw_locking_markers(enemy_figures, self.window)
 
