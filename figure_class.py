@@ -43,15 +43,6 @@ missile_launcher_model = 'graphics/Models/missile_launcher_model.png'
 spreader_item_sheet = 'graphics/Models/spreader_item_model.png'
 chain_gun_item_sheet = 'graphics/Models/chain_gun_item_model.png'
 
-blaster_sound = 'sound_fx\\player_sounds\\basic_blaster_sound.wav'
-spreader_sound = 'sound_fx\\player_sounds\\spreader_sound.wav'
-raaraa_sound = 'sound_fx\\player_sounds\\raaraa.wav'
-rail_gun_sound = 'sound_fx/player_sounds/rail_gun_sound.wav'
-
-enemy_blaster_sound = 'sound_fx\\enemy_sounds\\enemy_blaster.wav'
-enemy_spreader_sound = 'sound_fx\\enemy_sounds\\enemy_spreader.wav'
-enemy_rara_sound = 'sound_fx\\enemy_sounds\\enemy_raaraa.wav'
-
 
 def time_it(func):
     def wrapper(*args, **kwargs):
@@ -63,6 +54,15 @@ def time_it(func):
 
     return wrapper
 
+
+gun_sounds = {"blaster_sound": 'sound_fx\\player_sounds\\basic_blaster_sound.wav',
+              "spreader_sound": 'sound_fx\\player_sounds\\spreader_sound.wav',
+              "raaraa_sound": 'sound_fx\\player_sounds\\raaraa.wav',
+              "rail_gun_sound": 'sound_fx/player_sounds/rail_gun_sound.wav',
+              "enemy_blaster_sound": 'sound_fx\\enemy_sounds\\enemy_blaster.wav',
+              "enemy_spreader_sound": 'sound_fx\\enemy_sounds\\enemy_spreader.wav',
+              "enemy_rara_sound": 'sound_fx\\enemy_sounds\\enemy_raaraa.wav'
+              }
 
 player_sounds = [
     {"1": pygame.mixer.Sound("sound_fx\\player_sounds\\hit_sound_1.wav"),
@@ -80,8 +80,10 @@ enemy_hit_sounds = [
      "4": pygame.mixer.Sound("sound_fx\\enemy_sounds\\enemy_hit_4.wav"),
      "5": pygame.mixer.Sound("sound_fx\\enemy_sounds\\enemy_hit_5.wav")},
     None
-
 ]
+for dict_ in player_sounds:
+    for key, sound in dict_.items():
+        sound.set_volume(0.2)
 
 
 class Animation:
@@ -253,8 +255,8 @@ class Figure:
     def return_dimensions_and_position(self):
         # the // operation ensures, that the center of the rect is used as position of the object
         dimensions = (
-        self.position[0] - self.dimensions[0] // 2, self.position[1] - self.dimensions[1] // 2, self.dimensions[0],
-        self.dimensions[1])
+            self.position[0] - self.dimensions[0] // 2, self.position[1] - self.dimensions[1] // 2, self.dimensions[0],
+            self.dimensions[1])
         return dimensions
 
     # method for player and npcs as well as projectiles that spawn "shrapnel"
@@ -370,7 +372,7 @@ class Actor(Figure):
         self.hit_points_cap = kwargs.get('hit_points_cap', None)
         self.shield_recharge_rate = kwargs.get('shield_recharge_rate', None) / 60 if kwargs.get(
             'shield_recharge_rate') else None
-        self.shield_recharge_delay = kwargs.get('shield_recharge_delay', 4)
+        self.shield_recharge_delay = kwargs.get('shield_recharge_delay', 2)
         self.last_got_hit_time = 0
         self.hit_point_overcharge = kwargs.get('hit_point_overcharge', None)
         self.shield_overcharge = kwargs.get('shield_overcharge', None)
@@ -498,10 +500,10 @@ class Actor(Figure):
                 a.angle = -(self.orientation - 90)
 
                 return self.current_weapon.weapon_shoot(self.orientation, self.offset_spawn_position(),
-                                                   projectile_type), self.current_weapon.muzzle_flash.clone()
+                                                        projectile_type), self.current_weapon.muzzle_flash.clone()
             else:
                 return self.current_weapon.weapon_shoot(self.orientation, self.offset_spawn_position(),
-                                                   projectile_type), None
+                                                        projectile_type), None
 
         else:
             print("No Weapon available")
@@ -696,7 +698,7 @@ class Player(Actor):
             self.radar_active = False
         if self.shield > 0:
             # Reduce the shield by 3 units for each whole second
-            self.shield -= 10/60
+            self.shield -= 10 / 60
 
     # method for player
     def hit_points_and_shield_dynamic(self):
@@ -829,7 +831,8 @@ class NPC(Actor):
     def draw_health_bar(self, window):
         health_bar_length = self.hit_points / 2
         pygame.draw.rect(window, (255, 0, 0), (
-        self.position[0] - self.dimensions[0] / 2, self.position[1] - self.dimensions[1] / 2, health_bar_length, 20))
+            self.position[0] - self.dimensions[0] / 2, self.position[1] - self.dimensions[1] / 2, health_bar_length,
+            20))
 
     def is_in_range(self, target):
         if not (0 <= self.weapon_index < len(self.weapons)):
@@ -839,8 +842,6 @@ class NPC(Actor):
         distance = math.sqrt(
             (self.position[0] - target.position[0]) ** 2 + (self.position[1] - target.position[1]) ** 2)
         return distance < self.weapons[self.weapon_index].max_reach
-
-    import math
 
     def calculate_lead_target(self, target_position, target_velocity, projectile_velocity):
         player_x, player_y = target_position
@@ -870,9 +871,9 @@ class NPC(Actor):
 
         if lead_target and self.current_weapon:
             lead_target_pos = self.calculate_lead_target(target.position, target.velocity,
-                                        self.current_weapon.projectile_velocity)
+                                                         self.current_weapon.projectile_velocity)
             if debug_mode:
-                pygame.draw.circle(window, (0, 255, 0), lead_target_pos, 5) # debug line
+                pygame.draw.circle(window, (0, 255, 0), lead_target_pos, 5)  # debug line
 
             # Calculate the change in x and y
             dx = lead_target_pos[0] - self.position[0]
@@ -946,6 +947,16 @@ class NPC(Actor):
         return cloned_npc
 
 
+class BossNPC(NPC):
+    def __init__(self, *args, reward, radius, **kwargs):
+        super().__init__(*args, reward=reward, radius=radius, **kwargs)
+
+    # create some way to indicate to the player that the boss is about to fire
+    # REMEMBER!!! At the moment BossNPCs are still npcs due to the inherited npc clone method!!!
+
+
+
+
 class Projectile(Actor):
     def __init__(self, name, damage, orientation, velocity, position, life_time=None, sprite_loader=None,
                  max_reach=None, max_pierce=None, animation=None):
@@ -973,7 +984,6 @@ class Projectile(Actor):
             # Set the mask explicitly for the projectile
             self.mask = pygame.mask.from_surface(self.sprite_loader.get_oriented_sprite(self.orientation))
             self.mask_image = self.mask.to_surface()
-
 
     def update_mask(self):
         self.mask = pygame.mask.from_surface(self.sprite_loader.get_oriented_sprite(self.orientation))
@@ -1265,7 +1275,7 @@ class Item(Figure):
 
     @staticmethod
     def give_energy_ammo(target):
-        target.increase_ammo("energy_ammo", 15)
+        target.increase_ammo("energy_ammo", 25)
 
     @staticmethod
     def give_projectile_ammo(target):
@@ -1302,7 +1312,7 @@ class Weapon:
     """owner is only important for the player or if the owner is using finite ammo, so the weapon class has a reference
     to where to deduct the ammo"""
 
-    def __init__(self, name, damage, projectile_velocity, cooldown, owner=None, sound_volume=1, shoot_sound=None,
+    def __init__(self, name, damage, projectile_velocity, cooldown, owner=None, sound_volume=0.2, shoot_sound=None,
                  projectile_color=None, projectile_dimensions=None, sprite_loader=None,
                  max_reach=None, max_pierce=None, spread=0, projectiles_count=1,
                  heat_increase_per_shot=5, heat_decrease_per_second=2, max_heat=100,
@@ -1412,7 +1422,8 @@ class Weapon:
 
                 projectile = Projectile(name=self.name + "projectile", damage=self.damage, orientation=new_orientation,
                                         velocity=self.projectile_velocity,
-                                        position=origin_position, sprite_loader=self.sprite_loader, max_reach=self.max_reach,
+                                        position=origin_position, sprite_loader=self.sprite_loader,
+                                        max_reach=self.max_reach,
                                         max_pierce=self.max_pierce, animation=self.animation)
 
                 if self.sprite_loader is None and self.projectile_dimensions:
@@ -1668,12 +1679,13 @@ add_projectile_upgrade = Upgrade("add projectile", "adds an additional projectil
 player = Player("player", [300, 300], hit_points=100, shield=0, shield_cap=150, shield_overcharge=100,
                 hit_points_cap=200, hit_point_overcharge=120,
                 sprite_loader=Sprite_sheet_loader_3d(player_model, 100, 0.7), shield_recharge_rate=10,
-                turn_speed=5, max_velocity=10, acceleration=2, x_limit=500, y_limit=500, type_="player", sound_effects=player_sounds,
+                turn_speed=5, max_velocity=10, acceleration=2, x_limit=500, y_limit=500, type_="player",
+                sound_effects=player_sounds,
                 coins=0,
                 available_upgrades=[hp_upgrade_overcharge, shield_upgrade_overcharge, shield_recharge_rate_upgrade,
                                     shield_recharge_delay_upgrade]
                 )
-aim = Cursor([0, 0], [20, 20], aim_path)
+aim = Cursor([0, 0], [40, 40], aim_path)
 
 # ===============================
 # NPC Models Definitions
@@ -1685,26 +1697,31 @@ scout_enemy = NPC(name="scout", position=[50, 50], hit_points=100, reward=50, ra
                   weapon_switch_delay=1)
 
 brawler_enemy = NPC(name="brawler", position=[50, 50], hit_points=150, reward=100, radius=350,
-              sprite_loader=Sprite_sheet_loader_3d(brawler_model, 100, 0.5),
-              turn_speed=5, velocity=3, type_="enemy", sound_effects=None, animation=[explosion_a, portal_opening])
+                    sprite_loader=Sprite_sheet_loader_3d(brawler_model, 100, 0.5),
+                    turn_speed=5, velocity=3, type_="enemy", sound_effects=None,
+                    animation=[explosion_a, portal_opening])
 
 torus_enemy = NPC(name="Torus", type_="enemy", position=[50, 50], hit_points=200, reward=300, radius=500, velocity=3,
                   turn_speed=5, sprite_loader=Sprite_sheet_loader_3d(torus_enemy_sprite, 100, 0.5), sound_effects=None,
                   animation=[explosion_a])
 
-mogus_enemy = NPC(name="Mogus", type_="boss_enemy", position=[50, 50], hit_points=900, reward=300, radius=500,
-                  velocity=4, turn_speed=7, sprite_loader=Sprite_sheet_loader_3d(mogus_spreader_model, 100), sound_effects=None,
-                  animation=[explosion_a, portal_opening], weapon_switch_delay=0.5)
+mogus_enemy = BossNPC(name="Mogus", type_="boss_enemy", position=[50, 50], hit_points=900, reward=300, radius=500,
+                      velocity=4, turn_speed=7, sprite_loader=Sprite_sheet_loader_3d(mogus_spreader_model, 100),
+                      sound_effects=None,
+                      animation=[explosion_a, portal_opening], weapon_switch_delay=0.5)
 
-shredder_enemy = NPC(name="Shredder", type_="boss_enemy", position=[50, 50], hit_points=1000, reward=300, radius=500,
-                     velocity=4,
-                     turn_speed=10, sprite_loader=Sprite_sheet_loader_3d(shredder_model, 100), sound_effects=None,
-                     animation=[explosion_a, portal_opening], weapon_switch_delay=0.5)
+shredder_enemy = BossNPC(name="Shredder", type_="boss_enemy", position=[50, 50], hit_points=1000, reward=300,
+                         radius=500,
+                         velocity=4,
+                         turn_speed=10, sprite_loader=Sprite_sheet_loader_3d(shredder_model, 100), sound_effects=None,
+                         animation=[explosion_a, portal_opening], weapon_switch_delay=0.5)
 
-missile_mogus = NPC(name="missile_mogus", type_="boss_enemy", position=[50, 50], hit_points=800, reward=300, radius=500,
-                    velocity=3,
-                    turn_speed=5, sprite_loader=Sprite_sheet_loader_3d(missile_mogus_model, 100, 1.3), sound_effects=None,
-                    animation=[explosion_a, portal_opening], weapon_switch_delay=0.5)
+missile_mogus = BossNPC(name="missile_mogus", type_="boss_enemy", position=[50, 50], hit_points=800, reward=300,
+                        radius=500,
+                        velocity=3,
+                        turn_speed=5, sprite_loader=Sprite_sheet_loader_3d(missile_mogus_model, 100, 1.3),
+                        sound_effects=None,
+                        animation=[explosion_a, portal_opening], weapon_switch_delay=0.5)
 # ===============================
 # Goodies (Items) Definitions
 # ===============================
@@ -1773,14 +1790,15 @@ chain_gun_pick_up = Item(name="Chain Gun", type_="gun_pick_up", position=[100, 1
                          chance=1)
 
 missile_launcher_pick_up = Item(name="Missile Launcher", type_="gun_pick_up", position=[100, 100],
-                         sprite_loader=Sprite_sheet_loader_3d(missile_launcher_model, 100, scale=0.5),
-                         pick_up_distance=50,
-                         effect_function=Item.give_missile_launcher,
-                         turn_speed=5,
-                         chance=1)
+                                sprite_loader=Sprite_sheet_loader_3d(missile_launcher_model, 100, scale=0.5),
+                                pick_up_distance=50,
+                                effect_function=Item.give_missile_launcher,
+                                turn_speed=5,
+                                chance=1)
 
 scout_enemy.add_potential_drop(energy_ammo_item_template, coin_item_template, healing_item_template)
-brawler_enemy.add_potential_drop(shell_ammo_item_template, coin_item_template, omega_health_template, shield_item_template)
+brawler_enemy.add_potential_drop(shell_ammo_item_template, coin_item_template, omega_health_template,
+                                 shield_item_template)
 torus_enemy.add_potential_drop(projectile_ammo_item_template, coin_item_template, omega_health_template,
                                shield_item_template)
 mogus_enemy.add_potential_drop(spreader_pick_up)
@@ -1800,12 +1818,14 @@ basic_blaster = Weapon("blaster",
                        max_pierce=None,
                        ammo_type="energy_ammo",
                        unlimited_ammo=False,
-                       shoot_sound=blaster_sound,
+                       shoot_sound=gun_sounds["blaster_sound"],
+                       sound_volume=0.2,
                        projectile_dimensions=[7, 7],
                        projectile_color=(252, 186, 3),
                        projectiles_count=1,
                        muzzle_flash=muzzle_flash,
-                       available_weapon_upgrades=[damage_upgrade.clone(), fire_rate_upgrade.clone(), add_projectile_upgrade.clone()],
+                       available_weapon_upgrades=[damage_upgrade.clone(), fire_rate_upgrade.clone(),
+                                                  add_projectile_upgrade.clone()],
                        animation=[projectile_explosion])
 
 missile_launcher = HomingWeapon(name="missile launcher", damage=80, projectile_velocity=20, cooldown=1, owner=player,
@@ -1814,7 +1834,7 @@ missile_launcher = HomingWeapon(name="missile launcher", damage=80, projectile_v
                                 max_pierce=None,
                                 ammo_type="missile_ammo",
                                 unlimited_ammo=False,
-                                shoot_sound=blaster_sound,
+                                shoot_sound=gun_sounds["blaster_sound"],
                                 turn_speed=5,
                                 projectile_dimensions=[7, 7],
                                 projectile_color=(252, 186, 3),
@@ -1823,32 +1843,9 @@ missile_launcher = HomingWeapon(name="missile launcher", damage=80, projectile_v
                                 explosion_radius=125,
                                 shrapnel_angle=100,
                                 shrapnel_count=100,
-                                available_weapon_upgrades=[damage_upgrade.clone(), fire_rate_upgrade.clone(), add_projectile_upgrade.clone()],
+                                available_weapon_upgrades=[damage_upgrade.clone(), fire_rate_upgrade.clone(),
+                                                           add_projectile_upgrade.clone()],
                                 animation=[projectile_explosion])
-
-enemy_missile_launcher = HomingWeapon("homing_enemy_missile", damage=80, projectile_velocity=10, cooldown=3,
-                                    sprite_loader=Sprite_sheet_loader_3d(missile_model, 100, 0.4),
-                                    max_reach=1000,
-                                    max_pierce=None,
-                                    ammo_type="energy_ammo",
-                                    unlimited_ammo=True,
-                                    shoot_sound=blaster_sound,
-                                    turn_speed=2,
-                                    life_time=2,
-                                    heat_increase_per_shot=20,
-                                    max_heat=19,
-                                    heat_decrease_per_second=5,
-                                    projectile_dimensions=[7, 7],
-                                    projectile_color=(252, 186, 3),
-                                    projectiles_count=1,
-                                    muzzle_flash=muzzle_flash,
-                                    explosion_radius=125,
-                                    shrapnel_angle=45,
-                                    shrapnel_count=10,
-                                    locked_target=player,
-                                    available_weapon_upgrades=[damage_upgrade.clone(), fire_rate_upgrade.clone(),
-                                                               add_projectile_upgrade.clone()],
-                                    animation=[projectile_explosion])
 
 spreader = Weapon("spreader",
                   damage=20,
@@ -1864,8 +1861,9 @@ spreader = Weapon("spreader",
                   sprite_loader=None,
                   muzzle_flash=muzzle_flash,
                   animation=[projectile_explosion],
-                  available_weapon_upgrades=[damage_upgrade.clone(), fire_rate_upgrade.clone(), add_projectile_upgrade.clone()],
-                  shoot_sound=spreader_sound,
+                  available_weapon_upgrades=[damage_upgrade.clone(), fire_rate_upgrade.clone(),
+                                             add_projectile_upgrade.clone()],
+                  shoot_sound=gun_sounds["spreader_sound"],
                   ammo_type="shell_ammo")
 
 chain_gun = Weapon("chain_gun",
@@ -1879,7 +1877,7 @@ chain_gun = Weapon("chain_gun",
                    spread=5,
                    unlimited_ammo=False,
                    max_reach=700,
-                   shoot_sound=raaraa_sound,
+                   shoot_sound=gun_sounds["raaraa_sound"],
                    sound_volume=0.2,
                    animation=[projectile_explosion],
                    muzzle_flash=muzzle_flash,
@@ -1896,7 +1894,7 @@ burst_gun = Weapon("burst gun",
                    max_reach=1000, max_pierce=2,
                    heat_increase_per_shot=26,
                    max_heat=100,
-                   shoot_sound=rail_gun_sound,
+                   shoot_sound=gun_sounds["rail_gun_sound"],
                    sound_volume=1.2)
 
 debug_gun = Weapon("debug_gun",
@@ -1908,7 +1906,7 @@ debug_gun = Weapon("debug_gun",
                    projectile_dimensions=[5, 5],
                    spread=5,
                    max_reach=1000,
-                   shoot_sound=raaraa_sound,
+                   shoot_sound=gun_sounds["raaraa_sound"],
                    sound_volume=0.2,
                    heat_increase_per_shot=0,
                    muzzle_flash=muzzle_flash,
@@ -1917,48 +1915,76 @@ debug_gun = Weapon("debug_gun",
 
 enemy_blaster = Weapon("enemy blaster", 13, 15, 0.5, sprite_loader=None,
                        projectile_color=(255, 0, 0), projectile_dimensions=[5, 5], spread=15,
-                       max_reach=600, shoot_sound=enemy_blaster_sound, sound_volume=0.3, heat_increase_per_shot=26,
+                       max_reach=600, shoot_sound=gun_sounds["enemy_blaster_sound"], sound_volume=0.1,
+                       heat_increase_per_shot=26,
                        max_heat=100,
                        animation=[projectile_explosion])
 
 enemy_blaster_b = Weapon("enemy blaster", 10, 15, 0.5, sprite_loader=None,
                          projectile_color=(255, 0, 0), projectile_dimensions=[5, 5], spread=10,
-                         max_reach=600, shoot_sound=enemy_blaster_sound, sound_volume=0.3)
+                         max_reach=600, shoot_sound=gun_sounds["enemy_blaster_sound"], sound_volume=0.3)
 
-enemy_chain_gun = Weapon("enemy blaster wacko mode", 15, 20, 0.01, sprite_loader=None,
+enemy_chain_gun = Weapon("enemy blaster wacko mode", 5, 15, 0.01, sprite_loader=None,
                          projectile_color=(255, 0, 0), projectile_dimensions=[5, 5], spread=10,
-                         max_reach=600, shoot_sound=enemy_rara_sound, sound_volume=0.3, heat_decrease_per_second=0.5,
+                         max_reach=600, shoot_sound=gun_sounds["raaraa_sound"], sound_volume=0.3,
+                         heat_decrease_per_second=0.5,
                          animation=[projectile_explosion])
 
 shredder_chain_gun = Weapon("enemy shredder chaingun", 10, 38, 0.03, sprite_loader=None,
                             projectile_color=(255, 0, 0), projectile_dimensions=[5, 5], spread=10,
-                            max_reach=600, shoot_sound=enemy_rara_sound, sound_volume=0.3, heat_decrease_per_second=1,
+                            max_reach=600, shoot_sound=gun_sounds["raaraa_sound"], sound_volume=0.3,
+                            heat_decrease_per_second=1,
                             max_heat=250, animation=[projectile_explosion])
 
-enemy_spreader = Weapon("enemy spreader", damage=20, projectile_velocity=10, cooldown=0.5, spread=10,
+enemy_spreader = Weapon("enemy spreader", damage=20, projectile_velocity=15, cooldown=0.5, spread=10,
                         projectile_dimensions=[10, 10], projectile_color=(136, 255, 122),
                         projectiles_count=5, max_reach=400,
-                        sprite_loader=None, shoot_sound=enemy_spreader_sound, heat_increase_per_shot=35, max_heat=100)
+                        sprite_loader=None, shoot_sound=gun_sounds["enemy_spreader_sound"], heat_increase_per_shot=35,
+                        max_heat=100)
 
 enemy_boss_spreader = Weapon("enemy spreader", damage=20, projectile_velocity=20, cooldown=0.2, spread=10,
                              projectile_dimensions=[10, 10], projectile_color=(136, 255, 122),
                              projectiles_count=5, max_reach=400,
-                             sprite_loader=None, shoot_sound=enemy_spreader_sound, heat_increase_per_shot=15,
+                             sprite_loader=None, shoot_sound=gun_sounds["enemy_spreader_sound"],
+                             heat_increase_per_shot=15,
                              max_heat=100)
 
 enemy_rail_gun = Weapon("enemy rail gun", damage=100, projectile_velocity=30, cooldown=0.5, spread=10,
                         projectile_dimensions=[25, 25], projectile_color=(0, 255, 122),
                         projectiles_count=1, max_reach=800, max_heat=100, heat_increase_per_shot=101,
-                        sprite_loader=None, shoot_sound=rail_gun_sound)
+                        sprite_loader=None, shoot_sound=gun_sounds["rail_gun_sound"])
+
+enemy_missile_launcher = HomingWeapon("homing_enemy_missile", damage=80, projectile_velocity=10, cooldown=3,
+                                      sprite_loader=Sprite_sheet_loader_3d(missile_model, 100, 0.4),
+                                      max_reach=1000,
+                                      max_pierce=None,
+                                      ammo_type="energy_ammo",
+                                      unlimited_ammo=True,
+                                      shoot_sound=gun_sounds["blaster_sound"],
+                                      turn_speed=2,
+                                      life_time=2,
+                                      heat_increase_per_shot=20,
+                                      max_heat=19,
+                                      heat_decrease_per_second=5,
+                                      projectile_dimensions=[7, 7],
+                                      projectile_color=(252, 186, 3),
+                                      projectiles_count=1,
+                                      muzzle_flash=muzzle_flash,
+                                      explosion_radius=125,
+                                      shrapnel_angle=45,
+                                      shrapnel_count=10,
+                                      locked_target=player,
+                                      available_weapon_upgrades=[damage_upgrade.clone(), fire_rate_upgrade.clone(),
+                                                                 add_projectile_upgrade.clone()],
+                                      animation=[projectile_explosion])
 
 # ===============================
 # adding stuff to figures
 # ===============================
 
-player.add_weapon(basic_blaster, missile_launcher)
-player.coins = 1000
+player.add_weapon(basic_blaster)
 
-scout_enemy.add_weapon(enemy_blaster)
+scout_enemy.add_weapon(enemy_blaster, debug_gun)
 
 brawler_enemy.add_weapon(enemy_spreader)
 torus_enemy.add_weapon(enemy_chain_gun)

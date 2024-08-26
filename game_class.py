@@ -1,5 +1,9 @@
 import time  # currently unused
+
+import pygame.event
+
 from menu import *
+from menu_components import *
 from figure_class import *
 from text_prompt import InputBox
 import os
@@ -32,7 +36,7 @@ def render_multi_line_text(screen, text, font, position, gap, color=(0, 0, 0), a
 red = (255, 0, 0)
 
 
-class Button:
+class UpgradeButton:
     def __init__(self, game_instance, name, position, width, height, text, font, font_size, color, hover_color,
                  click_function, upgrade):
         self.game_instance = game_instance
@@ -63,7 +67,7 @@ class Button:
 
 
     def multi_line_render(self, text, font, rect, color=(0, 0, 0)):
-        """Renders multi-line text and blits it onto the window."""
+        #Renders multi-line text and blits it onto the window.
 
         # Split the text into lines
         lines = text.split('\n')
@@ -124,7 +128,6 @@ class Button:
         rendered_lines = self.multi_line_render(self.text, font, self.rect)
         for text_surface, text_rect in rendered_lines:
             window.blit(text_surface, text_rect)
-
         self.draw_tooltip(window)
 
 
@@ -197,7 +200,9 @@ class Game:
         self.score_additon = 0
         self.last_spawn_time = pygame.time.get_ticks()  # Initialize the last spawn time
         self.spawn_interval = 2000
-        self.buttons = []
+        self.buttons = [Button(name="shop_resume_button", position=[0, 0], dimensions=[100, 40], text="RESUME",
+                               alignment="right", click_function=lambda: self.change_state("playing"))]
+        self.align_fixed_buttons(self.buttons[0], 10)
         self.created_buttons = set()    # is used to avoid adding the same button over and over again to self.buttons in the create_buttons method
 
         self.time_when_last_boss_was_killed = None
@@ -218,13 +223,14 @@ class Game:
         # Load the menu from JSON
         self.menus = {"pause_menu": CustomMenu.from_json("saved_menus/Pause_Menu.json"),
                       "main_menu": CustomMenu.from_json("saved_menus/Main_Menu.json"),
-                      "options_menu": CustomMenu.from_json("saved_menus/Options_Menu.json")}
+                      "options_menu": CustomMenu.from_json("saved_menus/Options_Menu.json")
+                      }
         self.map_click_functions()
 
 
         # Define stages
         self.stages = [
-            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=2500, bosses_destroyed_threshold=None,
+            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=250, bosses_destroyed_threshold=None,
                   spawn_interval_modifier=1, enemy_speed_modifier=1),
             Stage("boss stage 1", enemy_pool=self.bosses[0], max_enemies=1, score_threshold=None, bosses_destroyed_threshold=1,
                   spawn_interval_modifier=1, enemy_speed_modifier=1, stage_type="boss_stage"),
@@ -243,6 +249,7 @@ class Game:
 
         self.current_stage = self.stages[self.stage_index]
         self.input_boxes = [InputBox("name_prompt", self.window_dimensions[0] / 2 - 125, self.window_dimensions[1] / 2, 250, 50)]
+
 
     @property
     def player(self):
@@ -295,6 +302,24 @@ class Game:
                         print("Mapping 'toggle_debug_mode' function")
                         menu_component.click_function = self.debug_mode_toggler
                         menu_component.tooltip_text = f"debug mode is: {self.debug_mode}"
+
+    def align_fixed_buttons(self, button, margin):
+
+        if button.alignment:
+            """Calculate the button's position based on alignment in the bottom corner with margin."""
+            if button.alignment == "left":
+                x = margin  # Positioned on the left with a margin
+            elif button.alignment == "right":
+                x = self.window_dimensions[0] - button.rect.width - margin  # Positioned on the right with a margin
+            elif button.alignment == "middle":
+                x = self.window_dimensions[0]/2 - button.rect.width / 2
+            else:
+                return
+
+            # Y position is the same for both alignments
+            y = self.window_dimensions[1] - button.rect.height - margin  # Positioned at the bottom with a margin
+            button.rect.x = x
+            button.rect.y = y
 
     def debug_mode_toggler(self):
         if self.debug_mode:
@@ -627,6 +652,8 @@ class Game:
             self.window.blit(weapon_stat_surface, (0, y_position))  # Displaying on the left, adjust X position as needed
             y_position += spacing
 
+
+
     def draw_game_over_screen(self):
         font = pygame.font.Font(self.game_font, 64)
         text_surface = font.render('Game Over, get fucked!', False, (0, 0, 0))
@@ -771,11 +798,25 @@ class Game:
         return random_pos_on_screen
 
     def return_distance(self, obj1, obj2):
-        x1, y1 = obj1.position
-        x2, y2 = obj2.position
+        # calculate the distance between two objects
+        # the if statements are for when positions are fed directly into this method
+
+        if hasattr(obj1, 'position'):
+            x1, y1 = obj1.position
+        elif isinstance(obj1, tuple):
+            x1, y1 = obj1
+        else:
+            raise ValueError('wrong method input')
+
+        if hasattr(obj2, 'position'):
+            x2, y2 = obj2.position
+        elif isinstance(obj2, tuple):
+            x2, y2 = obj2
+        else:
+            raise ValueError('wrong method input')
+
         distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
         return distance
-
 
     def spawn_item(self, *items, spawn_position):
         # If there are multiple items, choose one randomly
@@ -1048,7 +1089,7 @@ class Game:
                     def player_upgrade_function(upg=upgrade):  # Define the function within the loop
                         self.player.purchase_upgrade(upg)
 
-                    button = Button(name=upgrade.name, game_instance=self, position=[200, y_position], width=150, height=40,
+                    button = UpgradeButton(name=upgrade.name, game_instance=self, position=[200, y_position], width=150, height=40,
                                     text=f"{upgrade.name}",
                                     font=self.game_font, font_size=16,
                                     color=(13, 5, 245), hover_color=(156, 153, 255),
@@ -1071,7 +1112,7 @@ class Game:
                         def weapon_upgrade_function(upg=upgrade, wep=weapon):
                             wep.purchase_weapon_upgrade(upg)
 
-                        button = Button(name=combined_name, game_instance=self, position=[x_position, y_position],
+                        button = UpgradeButton(name=combined_name, game_instance=self, position=[x_position, y_position],
                                         width=150,
                                         height=40,
                                         text=f"{weapon.name}\n{upgrade.name} - {upgrade.cost} coins",
@@ -1147,6 +1188,30 @@ class Game:
             self.menus["options_menu"].update(event)
         self.menus["options_menu"].draw(self.window)
 
+    def shop_state_handler(self):
+        self.create_buttons()
+        self.draw_shop()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.quit_game()
+
+        for button in self.buttons:
+            if not button.hovered:
+                button.draw(self.window)
+            button.handle_event(event)
+            # separating the buttons from the UpgradeButtons because they are not similar enough to combine
+            # them into a single class.
+            if isinstance(button, UpgradeButton):
+                button.is_purchaseable = self.player.coins >= button.upgrade.cost
+                if button.upgrade.uses >= button.upgrade.max_uses:
+                    button.upgrade.used_up = True  # is that even necessary? I cannot remember
+                    self.buttons.remove(button)
+        # Draw hovered button last
+        for button in self.buttons:
+            if button.hovered:
+                button.draw(self.window)
+
     def run(self):
         """
         The run method handles the main game loop logic.
@@ -1185,29 +1250,24 @@ class Game:
                 self.draw_shop()
 
                 for button in self.buttons:
-                    if not button.hovered:
-                        button.draw(self.window)
-
-                # Draw hovered button last
-                for button in self.buttons:
-                    if button.hovered:
-                        button.draw(self.window)
-
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        self.quit_game()
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_SPACE:
-                            self.change_state("playing")  # Start the game when space is pressed
-                        if event.key == pygame.K_ESCAPE:
-                            self.change_state("playing")
-                    for button in self.buttons:
-                        button.handle_event(event)
+                    if isinstance(button, UpgradeButton):
                         button.is_purchaseable = self.player.coins >= button.upgrade.cost
                         if button.upgrade.uses >= button.upgrade.max_uses:
                             button.upgrade.used_up = True  # is that even necessary? I cannot remember
                             self.buttons.remove(button)
 
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.quit_game()
+                    for button in self.buttons:
+                        button.handle_event(event)
+                # this is due to the draw order that has to be like that so the tooltip is always readable
+                for button in self.buttons:
+                    if not button.hovered:
+                        button.draw(self.window)
+                for button in self.buttons:
+                    if button.hovered:
+                        button.draw(self.window)
 
             if self.state == "pause":
 
@@ -1230,6 +1290,7 @@ class Game:
                 self.frame_counter += 1
 
                 enemy_figures = [figure for figure in self.figures if figure.type_ in ["enemy", "boss_enemy"]]
+
                 # Handle player actions if the player is alive
                 if self.player_alive:
                     dx = self.mouse_pos[0] - self.player.position[0]
@@ -1269,7 +1330,7 @@ class Game:
 
                         for figure in self.figures:
                             if figure.type_ in ["enemy", "boss_enemy"]:
-                                distance = self.return_distance(player, figure)
+                                distance = self.return_distance(self.mouse_pos, figure)
                                 if distance < closest_distance:
                                     closest_distance = distance
                                     closest_enemy = figure
@@ -1283,9 +1344,7 @@ class Game:
                             player.radar_active = False
                             player.current_target = None  # Clear the target when not using a homing weapon
 
-                # If the player is not alive, switch the game state to game over
-                elif not self.player_alive:
-                    self.state = "game_over"
+
 
                 # Handle game events
                 for event in pygame.event.get():
@@ -1324,31 +1383,6 @@ class Game:
                         if event.key == pygame.K_TAB:
                             self.state = "shop"
 
-
-
-
-
-                        """if current_player_weapon.type_ == "homing" and event.key == pygame.K_r:
-                            # If the radar is active the red rectangles get DRAWN over all enemies in enemy_figures
-                            if not self.player.radar_active:
-                                self.player.radar_active = True
-                            else:
-                                self.player.radar_active = False"""
-
-                        """if isinstance(current_player_weapon, HomingWeapon) and self.player.radar_active and event.key == pygame.K_t and enemy_figures:
-
-                            # Wrap around if the index exceeds the length of enemy list
-                            if self.player.target_index >= len(enemy_figures):
-                                self.player.target_index = 0
-
-                            current_locked_target = enemy_figures[self.player.target_index]
-                            current_player_weapon.set_target(current_locked_target)
-
-                            # Increment the target index
-                            self.player.target_index += 1
-                        elif not enemy_figures:
-                            current_locked_target = None"""
-
                 # Draw the game background
                 self.draw_background(self.window, self.background_image)
 
@@ -1356,8 +1390,8 @@ class Game:
                 if self.player and self.player_alive:
                     self.player.draw_figure(self.window)
                     self.player.hit_points_and_shield_dynamic()
-                    if self.player.radar_active:
-                        self.player.radar_energy_cost()
+                    # if self.player.radar_active:
+                    #     self.player.radar_energy_cost()
                     if self.debug_mode:
                         self.player.debug_visuals(self.window, frame=self.frame_counter)
 
@@ -1384,7 +1418,7 @@ class Game:
 
                         if current_player_weapon.locked_target:
                             self.player.draw_locked_target_marker(current_player_weapon.locked_target, self.window)
-
+                    # checks that no entity leaves the screen
                     self.check_boundary(figure)
 
                 # Handle item spawn and despawn/effect mechanics separately
@@ -1419,15 +1453,17 @@ class Game:
 
                 # Check for and handle collisions
                 self.collision_check_and_handling()
-
+                # check if player is still alive and act accordingly
                 if self.player.hit_points <= 0:
                     self.player_alive = False
-                if not self.player_alive:
-                    self.state = "game_over"
 
                 if self.player_alive:
                     # Display the HUD (score, health, etc.)
                     self.draw_hud(self.frame_counter)
+
+                # If the player is not alive, switch the game state to game over
+                if not self.player_alive:
+                    self.state = "game_over"
 
                 # Handle NPC behaviors (e.g., targeting the player)
                 self.npc_behaviour_manager()
@@ -1442,10 +1478,9 @@ class Game:
                     if event.type == pygame.QUIT:
                         self.quit_game()
                     if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_SPACE:
-                            self.state = "display_highscore"
                         if event.key == pygame.K_ESCAPE:
-                            self.quit_game()
+                            self.state = "display_highscore"
+
 
             if self.state == "display_highscore":
                 self.high_score_handler()
@@ -1456,8 +1491,10 @@ class Game:
                         self.quit_game()
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_ESCAPE:
-                            self.quit_game()
+                            self.reset_game()
+                            self.state = "main_menu"
             # display custom cursor
             self.cursor.draw_cursor(self.window)
 
         pygame.quit()  # Quit the game when the main loop exits
+

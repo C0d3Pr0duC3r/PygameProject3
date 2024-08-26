@@ -134,8 +134,8 @@ FONT = pygame.font.Font(None, 32)
 
 
 class InputBox(MenuComponent):
-    def __init__(self, name, position, rect, font=None, font_size=32, title=None, dimensions=(200, 50), text=''):
-        super().__init__(name, position, dimensions, rect)
+    def __init__(self, name, position, font=None, font_size=32, title=None, dimensions=(200, 50), text=''):
+        super().__init__(name, position, dimensions)
         self.color = COLOR_INACTIVE
         self.text = text
         self.txt_surface = FONT.render(text, True, self.color)

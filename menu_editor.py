@@ -348,7 +348,7 @@ class MenuEditor:
         self.state_changer(EditorStates.NORMAL)
 
     def new_file(self):
-        file_name_box = InputBox("NEW_FILE_NAME_INPUT", [self.window_size[0]/2, self.window_size[1]/2 - 100], title="File Name")
+        file_name_box = InputBox("NEW_FILE_NAME_INPUT", position=[self.window_size[0]/2, self.window_size[1]/2 - 100], title="File Name")
         file_name_box.rect.x -= file_name_box.rect.width / 2 # centers the textbox along x-axis TODO: maybe add feature inside class
         menu_dimension_box = InputBox("menu_dimensions", [self.window_size[0]/2, self.window_size[1]/2],
                                         title="X, Y")

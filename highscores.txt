@@ -4,6 +4,8 @@ Tobi: 8475
 fart: 7490
 Daniel: 5400
 GAMER: 4950
+test: 2730
 Maxi: 1365
 fefe: 620
 poop: 315
+setste: 0
