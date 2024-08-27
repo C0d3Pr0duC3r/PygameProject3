@@ -4,6 +4,8 @@ Tobi: 8475
 fart: 7490
 Daniel: 5400
 GAMER: 4950
+FEG: 3080
+test: 1715
 Maxi: 1365
-test: 560
+et: 740
 tset: 0

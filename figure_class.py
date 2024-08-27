@@ -220,6 +220,7 @@ class Figure:
 
         # Visual attributes
         self.dimensions = kwargs.get('dimensions', [5, 5])
+        print(self.dimensions)
         self.color = kwargs.get('color', (255, 255, 255))
         self.animation = kwargs.get('animation', None)
         self.sprite_loader = kwargs.get('sprite_loader', None)
@@ -230,6 +231,7 @@ class Figure:
         else:
             self.mask = pygame.mask.from_surface(pygame.Surface(self.dimensions))
             self.mask_image = self.mask.to_surface()
+        print(self.dimensions)
 
     # universal figure method
     def rotate_figure(self, direction):
@@ -540,6 +542,11 @@ class Actor(Figure):
         hit_points_rect = hit_points_surface.get_rect(center=(self.position[0] + 70, self.position[1]))
         window.blit(hit_points_surface, hit_points_rect)
         pygame.display.update()
+
+class Obstacle(Actor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
 
 
 class Player(Actor):
@@ -1728,6 +1735,11 @@ player = Player(name="player", position=[300, 300], hit_points=100, shield=0, sh
 aim = Cursor([0, 0], [40, 40], aim_path)
 
 # ===============================
+# Obstacle Definitions
+# ===============================
+obstacle_a = Obstacle(name="obstacle", position=[500, 500], dimensions=[100, 100], type_="obstacle")
+
+# ===============================
 # NPC Models Definitions
 # ===============================
 
@@ -1889,7 +1901,7 @@ missile_launcher = HomingWeapon(name="missile launcher", damage=80, projectile_v
 
 spreader = Weapon("spreader",
                   damage=20,
-                  owner=None,
+                  owner=player,
                   projectile_velocity=15,
                   projectile_dimensions=[10, 10],
                   projectile_color=(255, 0, 255),
@@ -1910,7 +1922,7 @@ chain_gun = Weapon("chain_gun",
                    damage=25,
                    projectile_velocity=25,
                    cooldown=0.05,
-                   owner=None,
+                   owner=player,
                    sprite_loader=None,
                    projectile_color=(100, 248, 120),
                    projectile_dimensions=[5, 5],
@@ -2022,7 +2034,7 @@ enemy_missile_launcher = HomingWeapon("homing_enemy_missile", damage=80, project
 # adding stuff to figures
 # ===============================
 
-player.add_weapon(basic_blaster, debug_gun)
+player.add_weapon(basic_blaster)
 #player.coins = 1000
 
 scout_enemy.add_weapon(enemy_blaster)

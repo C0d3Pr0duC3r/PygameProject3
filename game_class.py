@@ -134,7 +134,7 @@ class UpgradeButton:
 
 class Stage:
     def __init__(self, name, enemy_pool, max_enemies, score_threshold, bosses_destroyed_threshold, boss_spawned=False,
-                 spawn_interval_modifier=1.0, enemy_speed_modifier=1.0, stage_type="regular"):
+                 spawn_interval_modifier=1.0, enemy_speed_modifier=1.0, obstacles=None, stage_type="regular"):
         self.name = name
         self.enemy_pool = enemy_pool  # List of enemy types available in this stage
         self.max_enemies = max_enemies
@@ -144,6 +144,7 @@ class Stage:
         self.score_threshold = score_threshold
         self.bosses_destroyed_threshold = bosses_destroyed_threshold
         self.boss_spawned = boss_spawned
+        self.obstacles = obstacles
 
 
 class MenuLoader:
@@ -196,6 +197,8 @@ class Game:
         self.animations = []
         self.enemies = enemies
         self.bosses = bosses
+
+        self.obstacles = []
         self.bosses_destroyed = 0
         self.projectiles = []
         self.items = []
@@ -236,7 +239,7 @@ class Game:
         self.stages = [
             Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=2500,
                   bosses_destroyed_threshold=None,
-                  spawn_interval_modifier=1, enemy_speed_modifier=1),
+                  spawn_interval_modifier=1, enemy_speed_modifier=1, obstacles=obstacle_a),
             Stage("boss stage 1", enemy_pool=self.bosses[0], max_enemies=1, score_threshold=None,
                   bosses_destroyed_threshold=1,
                   spawn_interval_modifier=1, enemy_speed_modifier=1, stage_type="boss_stage"),
@@ -528,7 +531,6 @@ class Game:
         self.game_over_time = pygame.time.get_ticks()
 
     def update_game_over(self):
-        print("update_game_over is called")
         print(self.game_over_time, self.state)
         # Check if the game is over and if 2 seconds have passed
         if self.state == "playing" and self.game_over_time:
@@ -769,6 +771,12 @@ class Game:
                     enemy_template = random.choice(self.current_stage.enemy_pool)
                     self.spawn_entity(enemy_template)
 
+    def spawn_obstacles(self):
+        current_obstacle = self.current_stage.obstacles
+        if current_obstacle not in self.figures:
+            self.add_figure(current_obstacle)
+    # spawn the obstacles of the stage
+
     def kill_streak_handler(self):
         """count the time since last kill to create a time window in which the next kill needs to be performed to keep
         the streak going. This is then used to determine the bonus points. The streak can go up to a certain number
@@ -891,6 +899,7 @@ class Game:
             entity.position[1] = 0
 
     def prevent_clipping(self, threshold=75):
+
         for i, entity1 in enumerate(self.figures):
             for j, entity2 in enumerate(self.figures[i + 1:]):
                 x1_pos, y1_pos = entity1.position
@@ -910,12 +919,72 @@ class Game:
                         dx /= distance
                         dy /= distance
 
-                    # Move the entities apart by the threshold distance
-                    # Adjust positions based on the unit vector
-                    entity1.position[0] -= dx * (threshold - distance) / 2
-                    entity1.position[1] -= dy * (threshold - distance) / 2
-                    entity2.position[0] += dx * (threshold - distance) / 2
-                    entity2.position[1] += dy * (threshold - distance) / 2
+                    # If one entity is an obstacle, only move the non-obstacle entity
+                    if entity1.type_ == "obstacle" and entity2.type_ != "obstacle":
+                        entity2.position[0] += dx * (threshold - distance)
+                        entity2.position[1] += dy * (threshold - distance)
+                    elif entity2.type_ == "obstacle" and entity1.type_ != "obstacle":
+                        entity1.position[0] -= dx * (threshold - distance)
+                        entity1.position[1] -= dy * (threshold - distance)
+                    else:
+                        # If neither or both are obstacles, move both entities as before
+                        entity1.position[0] -= dx * (threshold - distance) / 2
+                        entity1.position[1] -= dy * (threshold - distance) / 2
+                        entity2.position[0] += dx * (threshold - distance) / 2
+                        entity2.position[1] += dy * (threshold - distance) / 2
+
+    def prevent_clipping_if_everything_had_vectors(self, threshold=75):
+        """its a shame it dont work at the time"""
+        for i, entity1 in enumerate(self.figures):
+            for j, entity2 in enumerate(self.figures[i + 1:]):
+                x1_pos, y1_pos = entity1.position
+                x2_pos, y2_pos = entity2.position
+
+                # Calculate the distance between the two entities
+                distance = math.sqrt((x2_pos - x1_pos) ** 2 + (y2_pos - y1_pos) ** 2)
+
+                # Check if the distance is less than the threshold
+                if distance < threshold:
+                    # Calculate the direction vector from entity1 to entity2
+                    dx = x2_pos - x1_pos
+                    dy = y2_pos - y1_pos
+
+                    # Normalize the direction vector to get the unit vector
+                    if distance != 0:  # Prevent division by zero
+                        dx /= distance
+                        dy /= distance
+
+                    # Handle obstacle collision using the obstacle's rect
+                    if entity1.type_ == "obstacle" and entity2.type_ != "obstacle":
+                        if entity1.rect.colliderect(entity2.rect):
+                            overlap = entity1.rect.clip(entity2.rect)
+                            entity2.position[0] += dx * overlap.width
+                            entity2.position[1] += dy * overlap.height
+
+                            # Adjust the velocity to prevent "bouncing"
+                            if abs(dx) > abs(dy):
+                                entity2.velocity[0] = -entity2.velocity[0]  # Invert horizontal velocity
+                            else:
+                                entity2.velocity[1] = -entity2.velocity[1]  # Invert vertical velocity
+
+                    elif entity2.type_ == "obstacle" and entity1.type_ != "obstacle":
+                        if entity2.rect.colliderect(entity1.rect):
+                            overlap = entity2.rect.clip(entity1.rect)
+                            entity1.position[0] -= dx * overlap.width
+                            entity1.position[1] -= dy * overlap.height
+
+                            # Adjust the velocity to prevent "bouncing"
+                            if abs(dx) > abs(dy):
+                                entity1.velocity[0] = -entity1.velocity[0]  # Invert horizontal velocity
+                            else:
+                                entity1.velocity[1] = -entity1.velocity[1]  # Invert vertical velocity
+
+                    else:
+                        # If neither or both are obstacles, move both entities as before
+                        entity1.position[0] -= dx * (threshold - distance) / 2
+                        entity1.position[1] -= dy * (threshold - distance) / 2
+                        entity2.position[0] += dx * (threshold - distance) / 2
+                        entity2.position[1] += dy * (threshold - distance) / 2
 
     def player_enemy_projectile_collision_handler(self):
         for figure in self.figures:
@@ -947,7 +1016,10 @@ class Game:
                                 figure.set_kill_time(time.time())
                                 self.time_since_last_kill = figure.kill_time
                                 print(f"figure.name: {figure.name}, figure.kill_time: {figure.kill_time}")
-
+                elif figure.type_ == "obstacle" or isinstance(obstacle_a, Obstacle):
+                    if self.check_collision(figure, projectile):
+                        print(f"collision between {figure} and {projectile}")
+                        projectile.marked_for_death = True
     def remove_dead_figures_and_projectiles(self):
         dead_figures = (figure for figure in self.figures if figure.marked_for_death)
 
@@ -1328,6 +1400,8 @@ class Game:
                     # Spawn enemies periodically
                     if self.enemies_active:
                         self.spawn_enemy()
+                    # Spawn Obstacles
+                    self.spawn_obstacles()
 
                     # If player has no energy ammo anymore:
                     if self.player.ammo["energy_ammo"].current_ammo == 0:
@@ -1417,7 +1491,6 @@ class Game:
 
                 # Handle NPCs, players, and their interactions
                 for figure in self.figures:
-                    print(figure.name)
                     # so that if the player gets destroyed the model disappears
                     if figure.type_ != "player":
                         figure.draw_figure(self.window)
@@ -1442,7 +1515,8 @@ class Game:
                         if current_player_weapon.locked_target:
                             self.player.draw_locked_target_marker(current_player_weapon.locked_target, self.window)
                     # checks that no entity leaves the screen
-                    self.check_boundary(figure)
+                    if figure.type_ != "obstacle":
+                        self.check_boundary(figure)
 
                 # Handle item spawn and despawn/effect mechanics separately
                 for item in self.items:
