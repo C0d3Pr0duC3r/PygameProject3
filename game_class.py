@@ -234,7 +234,7 @@ class Game:
 
         # Define stages
         self.stages = [
-            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=250,
+            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=2500,
                   bosses_destroyed_threshold=None,
                   spawn_interval_modifier=1, enemy_speed_modifier=1),
             Stage("boss stage 1", enemy_pool=self.bosses[0], max_enemies=1, score_threshold=None,
@@ -648,8 +648,8 @@ class Game:
         spacing = 40  # Spacing between each line
 
         stats = [
-            f"Shield recharge_rate: {self.player.shield_recharge_rate}",
-            f"Hit Points recharge_delay: {self.player.shield_recharge_delay}",
+            f"Shield recharge_rate: {self.player.shield_recharge_rate} per sec",
+            f"Hit Points recharge_delay: {self.player.shield_recharge_delay} sec",
             f"Hit Point Overcharge: {self.player.hit_point_overcharge}",
             f"Shield Overcharge: {self.player.shield_overcharge}"
         ]

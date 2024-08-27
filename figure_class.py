@@ -371,8 +371,7 @@ class Actor(Figure):
         self.shield = kwargs.get('shield', None)
         self.shield_cap = kwargs.get('shield_cap', None)
         self.hit_points_cap = kwargs.get('hit_points_cap', None)
-        self.shield_recharge_rate = kwargs.get('shield_recharge_rate', None) / 60 if kwargs.get(
-            'shield_recharge_rate') else None
+        self.shield_recharge_rate = kwargs.get('shield_recharge_rate', None)
         self.shield_recharge_delay = kwargs.get('shield_recharge_delay', 2)
         self.last_got_hit_time = 0
         self.hit_point_overcharge = kwargs.get('hit_point_overcharge', None)
@@ -713,7 +712,9 @@ class Player(Actor):
 
         if current_time - self.last_got_hit_time > self.shield_recharge_delay:
             if self.shield < self.shield_overcharge:
-                modified_recharge_rate = self.shield_recharge_rate * (1 - (self.shield / self.shield_cap))
+                # shield recharge rate is divided by 60 because that should be the frame rate and then
+                # the shield recharge should act like a per second regeneration
+                modified_recharge_rate = self.shield_recharge_rate/60 * (1 - (self.shield / self.shield_cap))
                 self.shield += modified_recharge_rate
         if self.hit_points > self.hit_point_overcharge:
             self.hit_points -= 3 / 60
@@ -812,6 +813,8 @@ class Player(Actor):
             available_upgrades=self.available_upgrades,
             animation=self.animation
         )
+        print(f"cloned_player recharge rate: {cloned_player.shield_recharge_rate},"
+              f"original player recharge rate: {self.shield_recharge_rate}")
         cloned_player.weapons = [weapon.clone() for weapon in self.weapons]
         cloned_player.animation = [animation.clone() for animation in self.animation]
         for weapon in cloned_player.weapons:
