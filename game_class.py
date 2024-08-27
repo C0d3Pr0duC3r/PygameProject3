@@ -854,12 +854,6 @@ class Game:
         self.add_item(new_item)
         new_item.override_position(spawn_position)
 
-    """def is_nearing(self, threshold): # unused
-        x1, y1 = self.player.position
-        x2, y2 = self.mouse_pos
-        distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-        return distance < threshold"""
-
     def broad_phase_collision_check(self, entity1, entity2):
         if entity1.rect.colliderect(entity2.rect):
             print(f"broad phase collision detected between {entity1} and {entity2}")
