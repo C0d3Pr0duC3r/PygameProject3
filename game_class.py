@@ -10,7 +10,8 @@ import os
 import colorsys
 
 
-def render_multi_line_text(screen, text, font, position, gap, color=(0, 0, 0), anital=False, fill=False, screen_color=(255, 255, 255)):
+def render_multi_line_text(screen, text, font, position, gap, color=(0, 0, 0), anital=False, fill=False,
+                           screen_color=(255, 255, 255)):
     """
     Renders multi-line text onto the screen.
 
@@ -60,11 +61,11 @@ class UpgradeButton:
             if self.rect.collidepoint(event.pos):
                 self.click_function()
                 if self.is_purchaseable:
-                    self.upgrade.cost = int(self.upgrade.cost*1.2) # so the price does not increase if the upgrade can't be bought
+                    self.upgrade.cost = int(
+                        self.upgrade.cost * 1.2)  # so the price does not increase if the upgrade can't be bought
                     if self.upgrade.max_uses:
                         self.upgrade.uses += 1
                         ic(self.upgrade.name, self.upgrade.uses, self.upgrade.max_uses)
-
 
     def multi_line_render(self, text, font, rect, color=(0, 0, 0)):
         #Renders multi-line text and blits it onto the window.
@@ -156,6 +157,7 @@ class Game:
                  background_image_path=None, scale_background=True, game_font=None,
                  player_unkillable=False, debug_mode=False, animation_templates=None):
 
+        self.game_over_time = None
         self.is_running = True
         self.caption = caption
         self.state = "main_menu"
@@ -174,6 +176,9 @@ class Game:
 
         self.cursor = cursor
         self.player_template = player_template
+        player_template.x_limit = self.window_dimensions[0]
+        player_template.y_limit = self.window_dimensions[1]
+        self.player = player_template.clone()
 
         self.scale_background = scale_background
         if background_image_path is not None and scale_background:
@@ -203,7 +208,7 @@ class Game:
         self.buttons = [Button(name="shop_resume_button", position=[0, 0], dimensions=[100, 40], text="RESUME",
                                alignment="right", click_function=lambda: self.change_state("playing"))]
         self.align_fixed_buttons(self.buttons[0], 10)
-        self.created_buttons = set()    # is used to avoid adding the same button over and over again to self.buttons in the create_buttons method
+        self.created_buttons = set()  # is used to avoid adding the same button over and over again to self.buttons in the create_buttons method
 
         self.time_when_last_boss_was_killed = None
         self.time_since_last_kill = None
@@ -227,20 +232,23 @@ class Game:
                       }
         self.map_click_functions()
 
-
         # Define stages
         self.stages = [
-            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=250, bosses_destroyed_threshold=None,
+            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=250,
+                  bosses_destroyed_threshold=None,
                   spawn_interval_modifier=1, enemy_speed_modifier=1),
-            Stage("boss stage 1", enemy_pool=self.bosses[0], max_enemies=1, score_threshold=None, bosses_destroyed_threshold=1,
+            Stage("boss stage 1", enemy_pool=self.bosses[0], max_enemies=1, score_threshold=None,
+                  bosses_destroyed_threshold=1,
                   spawn_interval_modifier=1, enemy_speed_modifier=1, stage_type="boss_stage"),
             Stage("stage 2", self.enemies[:2], max_enemies=10, score_threshold=6500, bosses_destroyed_threshold=None,
                   spawn_interval_modifier=0.8, enemy_speed_modifier=1.2),
-            Stage("boss stage 2", enemy_pool=self.bosses[1], max_enemies=1, score_threshold=None, bosses_destroyed_threshold=2,
+            Stage("boss stage 2", enemy_pool=self.bosses[1], max_enemies=1, score_threshold=None,
+                  bosses_destroyed_threshold=2,
                   spawn_interval_modifier=1, enemy_speed_modifier=1, stage_type="boss_stage"),
             Stage("stage 3", self.enemies[1:3], max_enemies=13, score_threshold=12000, bosses_destroyed_threshold=None,
                   spawn_interval_modifier=0.5, enemy_speed_modifier=1.5),
-            Stage("boss stage 3", enemy_pool=self.bosses[2], max_enemies=1, score_threshold=None, bosses_destroyed_threshold=3,
+            Stage("boss stage 3", enemy_pool=self.bosses[2], max_enemies=1, score_threshold=None,
+                  bosses_destroyed_threshold=3,
                   spawn_interval_modifier=1, enemy_speed_modifier=1, stage_type="boss_stage"),
             Stage("stage 4", self.enemies, max_enemies=15, score_threshold=17500, bosses_destroyed_threshold=None,
                   spawn_interval_modifier=0.5, enemy_speed_modifier=1.5)
@@ -248,16 +256,16 @@ class Game:
         ]
 
         self.current_stage = self.stages[self.stage_index]
-        self.input_boxes = [InputBox("name_prompt", self.window_dimensions[0] / 2 - 125, self.window_dimensions[1] / 2, 250, 50)]
+        self.input_boxes = [
+            InputBox("name_prompt", self.window_dimensions[0] / 2 - 125, self.window_dimensions[1] / 2, 250, 50)]
 
-
-    @property
+    """@property
     def player(self):
         if self.figures and self.figures[0].type_ == "player":
             self.figures[0].x_limit = self.window_dimensions[0]
             self.figures[0].y_limit = self.window_dimensions[1]
-            return self.figures[0]
-        return None
+            return self.figures[0].clone()
+        return None"""
 
     def quit_game(self):
         self.is_running = False
@@ -312,7 +320,7 @@ class Game:
             elif button.alignment == "right":
                 x = self.window_dimensions[0] - button.rect.width - margin  # Positioned on the right with a margin
             elif button.alignment == "middle":
-                x = self.window_dimensions[0]/2 - button.rect.width / 2
+                x = self.window_dimensions[0] / 2 - button.rect.width / 2
             else:
                 return
 
@@ -369,7 +377,6 @@ class Game:
             if self.bosses_destroyed >= current_stage.bosses_destroyed_threshold:
 
                 if time.time() - self.time_when_last_boss_was_killed > 5:
-
                     self.stage_index += 1
                     # after the boss is killed the player enters the shop
                     self.change_state("shop")
@@ -462,8 +469,9 @@ class Game:
             current_weapon_projectile_count = current_weapon.projectiles_count
             font_2 = pygame.font.Font(self.game_font, 32)
 
-            text = (f"equipped: {current_weapon.name}\ndamage: {int(current_weapon.damage)}x{current_weapon_projectile_count}\n"
-                    f"ammo type: {current_ammo_type}\nammo:{str(current_ammo)}/{current_max_ammo}")
+            text = (
+                f"equipped: {current_weapon.name}\ndamage: {int(current_weapon.damage)}x{current_weapon_projectile_count}\n"
+                f"ammo type: {current_ammo_type}\nammo:{str(current_ammo)}/{current_max_ammo}")
 
             render_multi_line_text(screen=self.window,
                                    text=text,
@@ -499,7 +507,9 @@ class Game:
 
             # Bonus
             if self.time_since_last_kill:
-                bonus_surface = font.render(f"{2-(time.time() - self.time_since_last_kill):.2f} {self.kill_streak_counter}", False, _color_changer())
+                bonus_surface = font.render(
+                    f"{2 - (time.time() - self.time_since_last_kill):.2f} {self.kill_streak_counter}", False,
+                    _color_changer())
                 bonus_rect = bonus_surface.get_rect(center=(self.window_dimensions[0] - 300, 50))
                 self.window.blit(bonus_surface, bonus_rect)
 
@@ -520,18 +530,40 @@ class Game:
         _draw_player_stats()
         _draw_weapon_info()
         _draw_other_info()
-        # Update display
-        # pygame.display.update()  # Uncomment if necessary
+
+    def game_over_get_time(self):
+        # Record the time when game over is triggered
+        self.game_over_time = pygame.time.get_ticks()
+
+    def update_game_over(self):
+        print("update_game_over is called")
+        print(self.game_over_time, self.state)
+        # Check if the game is over and if 2 seconds have passed
+        if self.state == "playing" and self.game_over_time:
+            current_time = pygame.time.get_ticks()
+            print(current_time - self.game_over_time)
+            print(f" have 2 seconds passed? {current_time - self.game_over_time >= 2000}")
+            if current_time - self.game_over_time >= 2000:
+                self.change_state("game_over")
+                print("Game Over! The state has been changed to 'game_over'.")
 
     def reset_game(self):
         # 1. Clear the existing game state
         self.figures = []
         self.projectiles = []
+        self.items = []
+
+        self.bosses_destroyed = 0
+        self.last_spawn_time = pygame.time.get_ticks()
+        self.time_when_last_boss_was_killed = None
+        self.time_since_last_kill = None
+        self.game_over_time = None
+        self.stage_index = 0
 
         # 2. Reinitialize the player
-        player = self.player_template  # Assuming you have a player_template that holds the initial state of the player.
-        self.add_figure(player)  # Update the player reference
-        player.hit_points = 100
+        self.player = self.player_template.clone()
+        self.add_figure(self.player)  # Update the player reference
+        self.player.hit_points = 100
         self.player_alive = True
         self.score = 0
         self.player.current_weapon_index = 0
@@ -588,7 +620,7 @@ class Game:
         text = "High Scores:\n"
         for name, score in scores:
             text += f"{name}: {score}\n"
-        self.window.fill((5,5,5))
+        self.window.fill((5, 5, 5))
         # Step 3: Render each high score on the screen.
         render_multi_line_text(screen=self.window,
                                text=text,
@@ -649,10 +681,9 @@ class Game:
 
             # Render the display string to a surface
             weapon_stat_surface = stats_font.render(weapon_stat_string, False, (255, 255, 255))
-            self.window.blit(weapon_stat_surface, (0, y_position))  # Displaying on the left, adjust X position as needed
+            self.window.blit(weapon_stat_surface,
+                             (0, y_position))  # Displaying on the left, adjust X position as needed
             y_position += spacing
-
-
 
     def draw_game_over_screen(self):
         font = pygame.font.Font(self.game_font, 64)
@@ -716,7 +747,6 @@ class Game:
         else:
             self.add_figure(new_entity)
 
-
     def spawn_enemy(self):
 
         max_enemies = self.current_stage.max_enemies
@@ -751,12 +781,14 @@ class Game:
         """count the time since last kill to create a time window in which the next kill needs to be performed to keep
         the streak going. This is then used to determine the bonus points. The streak can go up to a certain number
         ten in this case. This means that if ten kills are in a streak the player gets a ten percent bonus"""
+
         def reset_streak_handler():
             # below resets the streak
             self.kill_streak_counter = 0
             self.score_additon = 0
             self.bonus_score = 0
             self.time_since_last_kill = None
+
         # This handles kill-streaks up to ten kills
         if self.time_since_last_kill and self.kill_streak_counter > 0:
             if self.kill_streak_counter > 1:
@@ -766,10 +798,9 @@ class Game:
                 self.bonus_score = self.score_additon
             # now if the time of 2 seconds has passed or the kill streak exceeds 10, the streak resets
             if time.time() - self.time_since_last_kill > 2 or self.kill_streak_counter > 10:
-
                 self.score += self.bonus_score
 
-                self.player.coins += int(self.kill_streak_counter/2)  # give some bonus coins
+                self.player.coins += int(self.kill_streak_counter / 2)  # give some bonus coins
 
                 reset_streak_handler()
 
@@ -794,7 +825,8 @@ class Game:
                 self.animations.remove(animation)
 
     def random_position_on_screen(self):
-        random_pos_on_screen = [random.randint(50, self.window_dimensions[0] - 50), random.randint(50, self.window_dimensions[1] - 50)]
+        random_pos_on_screen = [random.randint(50, self.window_dimensions[0] - 50),
+                                random.randint(50, self.window_dimensions[1] - 50)]
         return random_pos_on_screen
 
     def return_distance(self, obj1, obj2):
@@ -861,6 +893,8 @@ class Game:
         return overlap is not None
 
     def check_boundary(self, entity):
+        # maybe just use the window limits
+        # TODO stupid shit. x and y limits are set by the window limits. so maybe just cut out the middleman
         if entity.position[0] > entity.x_limit:
             entity.position[0] = entity.x_limit
         if entity.position[0] < 0:
@@ -901,7 +935,8 @@ class Game:
         for figure in self.figures:
             for projectile in self.projectiles:
                 # collision between player and enemy projectiles
-                if figure.type_ == "player" and projectile.type_ in ["enemyprojectile", "boss_enemyprojectile", "shrapnel"]:
+                if figure.type_ == "player" and self.player_alive and projectile.type_ in ["enemyprojectile", "boss_enemyprojectile",
+                                                                     "shrapnel"]:
                     # Check collision between player and enemy projectiles
                     if self.check_collision(figure, projectile):
                         if not self.player_unkillable:
@@ -934,29 +969,30 @@ class Game:
 
         pick_ups = [figure for figure in self.figures if figure.type_ == "pick_up"]
 
-        # TODO maybe combine the two lists in the future and handle all figures together as entities
         for figure in dead_figures:
-            if self.debug_mode:
-                self.debug_text_boxes.append(figure.name)
-            if figure.reward:
-                self.score_additon += figure.reward
-            self.kill_streak_counter += 1
-            if figure.type_ == "boss_enemy":
-                self.bosses_destroyed += 1
-            if figure.animation:
-                figure.animation[0].position = figure.position  # the first index should hold the explosion animation
-                figure.animation[0].owner = figure
-                self.animations.append(
-                    figure.animation[0])  # explosion of the figure gets added to the scene
-            # handle item drops
-            dropped_items = figure.handle_drop()
-            for dropped_item in dropped_items:
-                if dropped_item and len(pick_ups) < 10:
-                    self.add_item(dropped_item)
-                    dropped_item.override_position(figure.position)
-                if dropped_item and dropped_item.type_ == "gun_pick_up":
-                    self.add_item(dropped_item)
-                    dropped_item.override_position(figure.position)
+            if not figure.type_ == "player":
+                if self.debug_mode:
+                    self.debug_text_boxes.append(figure.name)
+                if figure.reward:
+                    self.score_additon += figure.reward
+                self.kill_streak_counter += 1
+                if figure.type_ == "boss_enemy":
+                    self.bosses_destroyed += 1
+                if figure.animation:
+                    figure.animation[
+                        0].position = figure.position  # the first index should hold the explosion animation
+                    figure.animation[0].owner = figure
+                    self.animations.append(
+                        figure.animation[0])  # explosion of the figure gets added to the scene
+                # handle item drops
+                dropped_items = figure.handle_drop()
+                for dropped_item in dropped_items:
+                    if dropped_item and len(pick_ups) < 10:
+                        self.add_item(dropped_item)
+                        dropped_item.override_position(figure.position)
+                    if dropped_item and dropped_item.type_ == "gun_pick_up":
+                        self.add_item(dropped_item)
+                        dropped_item.override_position(figure.position)
 
             self.remove_figure(figure)
 
@@ -964,7 +1000,8 @@ class Game:
             if hasattr(projectile, "explosion_radius"):
                 if projectile.explosion_radius:
                     projectile.explode(self.figures)
-                    pygame.draw.circle(self.window, (255, 150, 255), (int(projectile.position[0]), int(projectile.position[1])),
+                    pygame.draw.circle(self.window, (255, 150, 255),
+                                       (int(projectile.position[0]), int(projectile.position[1])),
                                        int(projectile.explosion_radius))
                 if projectile.shrapnel_count:
                     shrapnel_projectiles = projectile.create_shrapnel()
@@ -973,7 +1010,6 @@ class Game:
                             self.add_projectile(shrapnel)
 
             if projectile.animation:
-
                 projectile.animation[0].position = projectile.position
                 projectile.animation[0].owner = projectile
                 self.animations.append(
@@ -1055,7 +1091,7 @@ class Game:
                 # Mark the projectile for removal from the game
                 projectile.marked_for_death = True
 
-    def npc_behaviour_manager(self): # TODO maybe implement in-fighting or some npc that fights alongside the player
+    def npc_behaviour_manager(self):  # TODO maybe implement in-fighting or some npc that fights alongside the player
 
         for npc in self.figures:
             if isinstance(npc, NPC) and self.player:  # Ensure it's an NPC and player exists
@@ -1066,7 +1102,6 @@ class Game:
 
                     # Check if current weapon is overheated
                     if current_weapon.heat >= current_weapon.max_heat - 0.5:
-
                         npc.change_weapon()
 
                     self.handle_fire_effects(npc)
@@ -1089,11 +1124,12 @@ class Game:
                     def player_upgrade_function(upg=upgrade):  # Define the function within the loop
                         self.player.purchase_upgrade(upg)
 
-                    button = UpgradeButton(name=upgrade.name, game_instance=self, position=[200, y_position], width=150, height=40,
-                                    text=f"{upgrade.name}",
-                                    font=self.game_font, font_size=16,
-                                    color=(13, 5, 245), hover_color=(156, 153, 255),
-                                    click_function=player_upgrade_function, upgrade=upgrade)
+                    button = UpgradeButton(name=upgrade.name, game_instance=self, position=[200, y_position], width=150,
+                                           height=40,
+                                           text=f"{upgrade.name}",
+                                           font=self.game_font, font_size=16,
+                                           color=(13, 5, 245), hover_color=(156, 153, 255),
+                                           click_function=player_upgrade_function, upgrade=upgrade)
 
                     button.upgrade = upgrade
                     self.buttons.append(button)
@@ -1106,25 +1142,26 @@ class Game:
             if weapon.available_weapon_upgrades:
                 for upgrade in weapon.available_weapon_upgrades:
                     combined_name = weapon.name + "_" + upgrade.name
-                    if combined_name not in self.created_buttons and not upgrade.used_up: # check if the upgrade is already in the list
+                    if combined_name not in self.created_buttons and not upgrade.used_up:  # check if the upgrade is already in the list
                         print(combined_name)
 
                         def weapon_upgrade_function(upg=upgrade, wep=weapon):
                             wep.purchase_weapon_upgrade(upg)
 
-                        button = UpgradeButton(name=combined_name, game_instance=self, position=[x_position, y_position],
-                                        width=150,
-                                        height=40,
-                                        text=f"{weapon.name}\n{upgrade.name} - {upgrade.cost} coins",
-                                        font=self.game_font, font_size=16,
-                                        color=(13, 5, 245), hover_color=(156, 153, 255),
-                                        click_function=weapon_upgrade_function, upgrade=upgrade)
+                        button = UpgradeButton(name=combined_name, game_instance=self,
+                                               position=[x_position, y_position],
+                                               width=150,
+                                               height=40,
+                                               text=f"{weapon.name}\n{upgrade.name} - {upgrade.cost} coins",
+                                               font=self.game_font, font_size=16,
+                                               color=(13, 5, 245), hover_color=(156, 153, 255),
+                                               click_function=weapon_upgrade_function, upgrade=upgrade)
 
                         button.upgrade = upgrade
                         self.buttons.append(button)
                         self.created_buttons.add(combined_name)
                         y_position += spacing  # Increment the Y position for every upgrade
-                x_position += 200 # Increment the X position after processing all upgrades of a weapon
+                x_position += 200  # Increment the X position after processing all upgrades of a weapon
                 y_position = 100  # Reset Y position for the next column
 
     def handle_start_screen(self):
@@ -1219,7 +1256,7 @@ class Game:
 
         left_mouse_held_down = False  # Flag to track if the left mouse button is held down
         right_mouse_held_down = False  # Flag to track if the right mouse button is held down
-        self.add_figure(self.player_template) # add the player to the field
+        self.add_figure(self.player)  # add the player to the field
 
         # Main game loop
         while self.is_running:
@@ -1232,8 +1269,6 @@ class Game:
             self.cursor.update_position(self.mouse_pos)
             # Limit the frame rate
             self.clock.tick(self.fps)
-            # this is used for obvious reasons
-            current_player_weapon = self.player.weapons[self.player.weapon_index]
 
             # Display the start screen
             if self.state == "start_screen":
@@ -1293,6 +1328,7 @@ class Game:
 
                 # Handle player actions if the player is alive
                 if self.player_alive:
+                    current_player_weapon = self.player.weapons[self.player.weapon_index]
                     dx = self.mouse_pos[0] - self.player.position[0]
                     dy = self.mouse_pos[1] - self.player.position[1]
                     # angle is the orientation necessary for the player to look at the cursor
@@ -1343,8 +1379,6 @@ class Game:
                         else:
                             player.radar_active = False
                             player.current_target = None  # Clear the target when not using a homing weapon
-
-
 
                 # Handle game events
                 for event in pygame.event.get():
@@ -1397,7 +1431,10 @@ class Game:
 
                 # Handle NPCs, players, and their interactions
                 for figure in self.figures:
-                    figure.draw_figure(self.window)
+                    print(figure.name)
+                    # so that if the player gets destroyed the model disappears
+                    if figure.type_ != "player":
+                        figure.draw_figure(self.window)
 
                     if self.debug_mode:
                         figure.debug_visuals(self.window, frame=self.frame_counter)
@@ -1454,16 +1491,18 @@ class Game:
                 # Check for and handle collisions
                 self.collision_check_and_handling()
                 # check if player is still alive and act accordingly
-                if self.player.hit_points <= 0:
+                if self.player_alive and self.player.hit_points <= 0:
                     self.player_alive = False
+                    self.game_over_get_time()
+                    player_explosion = self.player.animation[0]
+                    player_explosion.position = self.player.position
+                    self.animations.append(player_explosion)
 
                 if self.player_alive:
                     # Display the HUD (score, health, etc.)
                     self.draw_hud(self.frame_counter)
 
-                # If the player is not alive, switch the game state to game over
-                if not self.player_alive:
-                    self.state = "game_over"
+                self.update_game_over()
 
                 # Handle NPC behaviors (e.g., targeting the player)
                 self.npc_behaviour_manager()
@@ -1481,20 +1520,20 @@ class Game:
                         if event.key == pygame.K_ESCAPE:
                             self.state = "display_highscore"
 
-
             if self.state == "display_highscore":
                 self.high_score_handler()
                 self.draw_high_score_display()
+                self.reset_game()
 
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.quit_game()
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_ESCAPE:
-                            self.reset_game()
                             self.state = "main_menu"
             # display custom cursor
             self.cursor.draw_cursor(self.window)
 
         pygame.quit()  # Quit the game when the main loop exits
+
 

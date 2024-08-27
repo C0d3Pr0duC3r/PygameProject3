@@ -345,6 +345,7 @@ class Figure:
     # universal figure method
     def clone(self):
         """Creates a copy of the Figure instance."""
+        print(f"inside class print ==> {self.name} is using the clone method of {self}")
 
         # Create a new instance without calling __init__
         cloned_obj = self.__class__.__new__(self.__class__)
@@ -787,6 +788,39 @@ class Player(Actor):
 
         # Draw the text next to the figure
         window.blit(name_surface, name_rect)
+
+    def clone(self):
+        cloned_player = Player(
+            name=self.name,
+            position=self.position,
+            hit_points=self.hit_points,
+            shield=self.shield,
+            shield_cap=self.shield_cap,
+            shield_overcharge=self.shield_overcharge,
+            hit_points_cap=self.hit_points_cap,
+            hit_point_overcharge=self.hit_point_overcharge,
+            sprite_loader=self.sprite_loader,
+            shield_recharge_rate=self.shield_recharge_rate,
+            turn_speed=self.turn_speed,
+            max_velocity=self.max_velocity,
+            acceleration=self.acceleration,
+            y_limit=self.y_limit,
+            x_limit=self.x_limit,
+            type_=self.type_,
+            sound_effects=self.sound_effects,
+            coins=self.coins,
+            available_upgrades=self.available_upgrades,
+            animation=self.animation
+        )
+        cloned_player.weapons = [weapon.clone() for weapon in self.weapons]
+        cloned_player.animation = [animation.clone() for animation in self.animation]
+        for weapon in cloned_player.weapons:
+            weapon.owner = cloned_player
+        cloned_player.weapon_index = self.weapon_index
+        cloned_player.type_ = self.type_
+        cloned_player.sound_effects = self.sound_effects
+
+        return cloned_player
 
 
 class NPC(Actor):
@@ -1466,7 +1500,8 @@ class Weapon:
             max_heat=self.max_heat,
             ammo_type=self.ammo_type,
             unlimited_ammo=self.unlimited_ammo,
-            animation=self.animation
+            animation=self.animation,
+            available_weapon_upgrades=self.available_weapon_upgrades
 
         )
 
@@ -1633,6 +1668,8 @@ class Upgrade:  # TODO add more upgrades and create a way to make "use up" upgra
             description=self.description,
             cost=self.cost,
             upgrade_function=self.upgrade_function,
+            uses=self.uses,
+            max_uses=self.max_uses,
             type_=self.type_
         )
         return cloned_upgrade
@@ -1676,14 +1713,14 @@ add_projectile_upgrade = Upgrade("add projectile", "adds an additional projectil
 # Player Model Definition
 # ===============================
 
-player = Player("player", [300, 300], hit_points=100, shield=0, shield_cap=150, shield_overcharge=100,
+player = Player(name="player", position=[300, 300], hit_points=100, shield=0, shield_cap=150, shield_overcharge=100,
                 hit_points_cap=200, hit_point_overcharge=120,
                 sprite_loader=Sprite_sheet_loader_3d(player_model, 100, 0.7), shield_recharge_rate=10,
                 turn_speed=5, max_velocity=10, acceleration=2, x_limit=500, y_limit=500, type_="player",
                 sound_effects=player_sounds,
                 coins=0,
                 available_upgrades=[hp_upgrade_overcharge, shield_upgrade_overcharge, shield_recharge_rate_upgrade,
-                                    shield_recharge_delay_upgrade]
+                                    shield_recharge_delay_upgrade], animation=[explosion_a]
                 )
 aim = Cursor([0, 0], [40, 40], aim_path)
 
@@ -1982,9 +2019,10 @@ enemy_missile_launcher = HomingWeapon("homing_enemy_missile", damage=80, project
 # adding stuff to figures
 # ===============================
 
-player.add_weapon(basic_blaster)
+player.add_weapon(basic_blaster, debug_gun)
+player.coins = 1000
 
-scout_enemy.add_weapon(enemy_blaster, debug_gun)
+scout_enemy.add_weapon(enemy_blaster)
 
 brawler_enemy.add_weapon(enemy_spreader)
 torus_enemy.add_weapon(enemy_chain_gun)
