@@ -4,7 +4,7 @@ import pygame
 
 
 class CustomMenu:
-    def __init__(self, dimensions, position=(0, 0), color=colors["BLUE"]):
+    def __init__(self, dimensions, position=(0, 0), color=colors["BLACK"]):
         self.components = []
         self.position = position
         self.selected_button = None
@@ -36,7 +36,7 @@ class CustomMenu:
         with open(file_path, 'r') as f:
             data = json.load(f)
             dimensions = data.get('dimensions', [800, 600])  # Default dimensions if not provided
-            color = data.get('color', [0, 0, 255])  # Default color if not provided
+            color = data.get('color', [0, 0, 0])  # Default color if not provided
             position = data.get('position', [0, 0])  # Default position if not provided
             menu = cls(dimensions, position, color)
             for component_data in data['components']:

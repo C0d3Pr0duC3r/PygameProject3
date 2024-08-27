@@ -259,14 +259,6 @@ class Game:
         self.input_boxes = [
             InputBox("name_prompt", self.window_dimensions[0] / 2 - 125, self.window_dimensions[1] / 2, 250, 50)]
 
-    """@property
-    def player(self):
-        if self.figures and self.figures[0].type_ == "player":
-            self.figures[0].x_limit = self.window_dimensions[0]
-            self.figures[0].y_limit = self.window_dimensions[1]
-            return self.figures[0].clone()
-        return None"""
-
     def quit_game(self):
         self.is_running = False
 
