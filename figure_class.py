@@ -2023,7 +2023,7 @@ enemy_missile_launcher = HomingWeapon("homing_enemy_missile", damage=80, project
 # ===============================
 
 player.add_weapon(basic_blaster, debug_gun)
-player.coins = 1000
+#player.coins = 1000
 
 scout_enemy.add_weapon(enemy_blaster)
 
