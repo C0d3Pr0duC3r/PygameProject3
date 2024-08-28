@@ -220,7 +220,6 @@ class Figure:
 
         # Visual attributes
         self.dimensions = kwargs.get('dimensions', [5, 5])
-        print(self.dimensions)
         self.color = kwargs.get('color', (255, 255, 255))
         self.animation = kwargs.get('animation', None)
         self.sprite_loader = kwargs.get('sprite_loader', None)
@@ -231,7 +230,6 @@ class Figure:
         else:
             self.mask = pygame.mask.from_surface(pygame.Surface(self.dimensions))
             self.mask_image = self.mask.to_surface()
-        print(self.dimensions)
 
     # universal figure method
     def rotate_figure(self, direction):
@@ -282,9 +280,6 @@ class Figure:
 
     # universal figure method
     def update_rect(self):
-
-        """print(f"Position: {self.position}, Dimensions: {self.dimensions}")
-        print(f"Calculated X: {self.position[0] - self.dimensions[0] // 2}")"""
 
         # Center the rect on the figure's position
         self.rect.x = self.position[0] - self.dimensions[0] // 2
@@ -347,7 +342,6 @@ class Figure:
     # universal figure method
     def clone(self):
         """Creates a copy of the Figure instance."""
-        print(f"inside class print ==> {self.name} is using the clone method of {self}")
 
         # Create a new instance without calling __init__
         cloned_obj = self.__class__.__new__(self.__class__)
@@ -480,7 +474,7 @@ class Actor(Figure):
             try:
                 self.hit_points -= damage
             except TypeError:
-                print(TypeError, "figure_class.py 372")
+                print(TypeError, "figure_class.py 477")
 
         # Only set marked_for_death for non-Player instances
         if not isinstance(self, Player):
@@ -820,8 +814,7 @@ class Player(Actor):
             available_upgrades=self.available_upgrades,
             animation=self.animation
         )
-        print(f"cloned_player recharge rate: {cloned_player.shield_recharge_rate},"
-              f"original player recharge rate: {self.shield_recharge_rate}")
+
         cloned_player.weapons = [weapon.clone() for weapon in self.weapons]
         cloned_player.animation = [animation.clone() for animation in self.animation]
         for weapon in cloned_player.weapons:
@@ -1243,7 +1236,6 @@ class Item(Figure):
     def item_in_range(self, target):
         distance = math.sqrt(
             (self.position[0] - target.position[0]) ** 2 + (self.position[1] - target.position[1]) ** 2)
-        # print(f"Distance: {distance}, Pick-up Distance: {self.pick_up_distance}")
         return distance < self.pick_up_distance
 
     def apply_effect(self, target):

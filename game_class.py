@@ -1274,7 +1274,6 @@ class Game:
 
     def handle_options_menu_screen(self):
         for comp in self.menus["options_menu"].components:
-            print(comp.name, comp.enabled)
             if comp.name == "resume" and self.previous_state == "main_menu":
                 comp.enabled = False
             else:
