@@ -1,25 +1,22 @@
-Für Objekte eine Art Location Attribut implementieren
-    > Wenn ein Objekt den Bildschirmrand erreicht, wird es grundsätzlich in die neue Location geladen
-    > Es gibt natürlich Ausnahmen
-Waffen implementieren
-    > raketen/explosionen implementieren
-Kamera implementieren
-    > Illusion, dass eine Kamera dem Spieler folgt
-    > Größere Spielwelt dadurch simulieren
-Pick ups implementieren
-
-
-Bosse implementieren
-
-Stun mechaniken
-    > Gegner attribute die Bewegung steuern randomisen
-
-Gegner KI
-
-
 Sound
-    > Einen Soundtrack der im Loop läuft
-    > Sound Effekte allgemein
-        >> Schießen
-        >> Treffer
-        >> Explosionen
+    > Einen Soundtrack der im Loop läuft (maybe)
+    > Sound im Menu steuerbar machen
+
+Waffen
+    > normale explosiv waffen implementieren
+
+Arena dekor
+    > Deckung
+    >> Funktioniert soweit. Spawn und Despawn effekte hinzufügen. Vielleicht sind deckungen auch zerstörbar in Zukunft
+    > Portale?
+
+Clipping Prevention
+    > den threshold von den figure größen abhängig machen
+
+Bosse
+    > stärkere Angriffe?
+    > Angriffe sollen "telegrapht" werden
+
+Aufräumen
+    > die xy limits der figures sind vermutlich redundant und können weg, weil die game class checkt ob was aus dem
+    < schirm raus fliegt

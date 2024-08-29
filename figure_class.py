@@ -280,7 +280,6 @@ class Figure:
 
     # universal figure method
     def update_rect(self):
-
         # Center the rect on the figure's position
         self.rect.x = self.position[0] - self.dimensions[0] // 2
         self.rect.y = self.position[1] - self.dimensions[1] // 2
@@ -537,6 +536,7 @@ class Actor(Figure):
         window.blit(hit_points_surface, hit_points_rect)
         pygame.display.update()
 
+
 class Obstacle(Actor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -556,7 +556,7 @@ class Player(Actor):
         self.ammo = {
             "energy_ammo": AmmoType(50, 200),
             "projectile_ammo": AmmoType(0, 500),
-            "shell_ammo": AmmoType(0, 50),
+            "shell_ammo": AmmoType(5, 50),
             "missile_ammo": AmmoType(10, 20)
 
         }
@@ -989,7 +989,37 @@ class BossNPC(NPC):
         super().__init__(*args, reward=reward, radius=radius, **kwargs)
 
     # create some way to indicate to the player that the boss is about to fire
-    # REMEMBER!!! At the moment BossNPCs are still npcs due to the inherited npc clone method!!!
+    def clone(self):
+        cloned_boss = BossNPC(
+            name=self.name,
+            position=self.position,
+            hit_points=self.hit_points,
+            radius=self.radius,
+            dimensions=self.dimensions.copy(),
+            sprite_loader=self.sprite_loader,
+            turn_speed=self.turn_speed,
+            velocity=self.velocity,
+            orientation=self.orientation,
+            reward=self.reward,
+            color=self.color,
+            y_limit=self.y_limit,
+            x_limit=self.x_limit,
+            no_clip=self.no_clip,
+            weapon_switch_delay=self.weapon_switch_delay,
+            spawn_animation_active=self.spawn_animation_active,
+            is_locked=self.is_locked,
+            gets_locked=self.gets_locked
+        )
+        cloned_boss.items_to_drop = [item.clone() for item in self.items_to_drop]
+        cloned_boss.weapons = [weapon.clone() for weapon in self.weapons]
+        cloned_boss.animation = [animation.clone() for animation in self.animation]
+        for weapon in cloned_boss.weapons:
+            weapon.owner = cloned_boss
+        cloned_boss.weapon_index = self.weapon_index
+        cloned_boss.type_ = self.type_
+        cloned_boss.sound_effects = self.sound_effects
+
+        return cloned_boss
 
 
 
@@ -1281,7 +1311,7 @@ class Item(Figure):
         if spreader not in target.weapons:
             target.add_weapon(spreader)
             target.increase_ammo("shell_ammo", 10)
-            spreader.owner = player
+            spreader.owner = target
         else:
             target.increase_ammo("shell_ammo", 20)
         print(f"Gave {target.name} a New Blaster!")
@@ -1291,7 +1321,7 @@ class Item(Figure):
         if chain_gun not in target.weapons:
             target.add_weapon(chain_gun)
             target.increase_ammo("projectile_ammo", 50)
-            chain_gun.owner = player
+            chain_gun.owner = target
         else:
             target.increase_ammo("projectile_ammo", 100)
         print(f"Gave {target.name} a New Blaster!")
@@ -1301,7 +1331,7 @@ class Item(Figure):
         if missile_launcher not in target.weapons:
             target.add_weapon(missile_launcher)
             target.increase_ammo("missile_ammo", 5)
-            missile_launcher.owner = player
+            missile_launcher.owner = target
         else:
             target.increase_ammo("missile_ammo", 10)
 
@@ -1729,7 +1759,7 @@ aim = Cursor([0, 0], [40, 40], aim_path)
 # ===============================
 # Obstacle Definitions
 # ===============================
-obstacle_a = Obstacle(name="obstacle", position=[500, 500], dimensions=[100, 100], type_="obstacle")
+obstacle_a = Obstacle(name="obstacle", position=[500, 500], dimensions=[80, 80], type_="obstacle", color=(255, 30, 120))
 
 # ===============================
 # NPC Models Definitions
@@ -1740,7 +1770,7 @@ scout_enemy = NPC(name="scout", position=[50, 50], hit_points=100, reward=50, ra
                   turn_speed=5, velocity=5, type_="enemy", sound_effects=None, animation=[explosion_a, portal_opening],
                   weapon_switch_delay=1)
 
-brawler_enemy = NPC(name="brawler", position=[50, 50], hit_points=150, reward=100, radius=350,
+brawler_enemy = NPC(name="brawler", position=[50, 50], hit_points=150, reward=100, radius=400,
                     sprite_loader=Sprite_sheet_loader_3d(brawler_model, 100, 0.5),
                     turn_speed=5, velocity=3, type_="enemy", sound_effects=None,
                     animation=[explosion_a, portal_opening])
@@ -1749,7 +1779,7 @@ torus_enemy = NPC(name="Torus", type_="enemy", position=[50, 50], hit_points=200
                   turn_speed=5, sprite_loader=Sprite_sheet_loader_3d(torus_enemy_sprite, 100, 0.5), sound_effects=None,
                   animation=[explosion_a])
 
-mogus_enemy = BossNPC(name="Mogus", type_="boss_enemy", position=[50, 50], hit_points=900, reward=300, radius=500,
+mogus_enemy = BossNPC(name="Mogus", type_="boss_enemy", position=[50, 50], hit_points=900, reward=300, radius=800,
                       velocity=4, turn_speed=7, sprite_loader=Sprite_sheet_loader_3d(mogus_spreader_model, 100),
                       sound_effects=None,
                       animation=[explosion_a, portal_opening], weapon_switch_delay=0.5)
@@ -1982,13 +2012,13 @@ shredder_chain_gun = Weapon("enemy shredder chaingun", 10, 38, 0.03, sprite_load
 
 enemy_spreader = Weapon("enemy spreader", damage=20, projectile_velocity=15, cooldown=0.5, spread=10,
                         projectile_dimensions=[10, 10], projectile_color=(136, 255, 122),
-                        projectiles_count=5, max_reach=400,
+                        projectiles_count=5, max_reach=400, animation=[projectile_explosion],
                         sprite_loader=None, shoot_sound=gun_sounds["enemy_spreader_sound"], heat_increase_per_shot=35,
                         max_heat=100)
 
 enemy_boss_spreader = Weapon("enemy spreader", damage=20, projectile_velocity=20, cooldown=0.2, spread=10,
                              projectile_dimensions=[10, 10], projectile_color=(136, 255, 122),
-                             projectiles_count=5, max_reach=400,
+                             projectiles_count=5, max_reach=400, animation=[projectile_explosion],
                              sprite_loader=None, shoot_sound=gun_sounds["enemy_spreader_sound"],
                              heat_increase_per_shot=15,
                              max_heat=100)
@@ -2026,7 +2056,7 @@ enemy_missile_launcher = HomingWeapon("homing_enemy_missile", damage=80, project
 # adding stuff to figures
 # ===============================
 
-player.add_weapon(basic_blaster)
+player.add_weapon(basic_blaster, spreader)
 #player.coins = 1000
 
 scout_enemy.add_weapon(enemy_blaster)

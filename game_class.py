@@ -133,8 +133,8 @@ class UpgradeButton:
 
 
 class Stage:
-    def __init__(self, name, enemy_pool, max_enemies, score_threshold, bosses_destroyed_threshold, boss_spawned=False,
-                 spawn_interval_modifier=1.0, enemy_speed_modifier=1.0, obstacles=None, stage_type="regular"):
+    def __init__(self, name, enemy_pool, max_enemies, score_threshold, bosses_destroyed_threshold, game, boss_spawned=False,
+                 spawn_interval_modifier=1.0, enemy_speed_modifier=1.0, stage_type="regular", placement_pattern=None):
         self.name = name
         self.enemy_pool = enemy_pool  # List of enemy types available in this stage
         self.max_enemies = max_enemies
@@ -144,13 +144,48 @@ class Stage:
         self.score_threshold = score_threshold
         self.bosses_destroyed_threshold = bosses_destroyed_threshold
         self.boss_spawned = boss_spawned
-        self.obstacles = obstacles
+        self.obstacle = obstacle_a  # uses a predefined obstacle of the figure class
+        self.game = game
+        self.obstacles_spawned = False
+        self.placement_pattern = placement_pattern
+        if self.placement_pattern == "two_pillars":
+            self.generate_pillar_pattern()
 
+    def generate_pillar_pattern(self):
 
-class MenuLoader:
-    # use the from json method of the custommenu class to create menus from json files
+        positions = []
+        obstacle_height = self.obstacle.dimensions[1]
 
-    pass
+        # Calculate x positions for the two pillars
+        x1 = self.game.window_dimensions[0] * 0.25  # 1/4 of the screen width from the left
+        x2 = self.game.window_dimensions[0] * 0.75  # 3/4 of the screen width from the left
+
+        # Calculate y positions for the top and bottom
+        ytop = self.game.window_dimensions[1] // 6
+        ybottom = self.game.window_dimensions[1] * 5 // 6
+
+        # Generate positions for the pillars
+        current_y = ytop
+        while current_y < ybottom:
+            positions.append([x1, current_y])
+            positions.append([x2, current_y])
+            current_y += obstacle_height * 2
+
+        self.placement_pattern = positions
+
+    def manage_obstacles(self):
+        obstacles = []
+        if self.placement_pattern:
+            if not self.obstacles_spawned:
+                for pos in self.placement_pattern:
+                    current_obstacle = self.obstacle.clone()
+                    current_obstacle.position = pos
+                    obstacles.append(current_obstacle)
+                self.obstacles_spawned = True
+        return obstacles
+        # middle_x = self.game.window_dimensions[0] // 2
+        # middle_y = self.game.window_dimensions[1] // 2
+        # self.obstacle.position = [middle_x, middle_y]
 
 
 class Game:
@@ -237,23 +272,26 @@ class Game:
 
         # Define stages
         self.stages = [
-            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=2500,
-                  bosses_destroyed_threshold=None,
-                  spawn_interval_modifier=1, enemy_speed_modifier=1, obstacles=obstacle_a),
+            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=200,
+                  bosses_destroyed_threshold=None, game=self, placement_pattern="two_pillars",
+                  spawn_interval_modifier=1, enemy_speed_modifier=1),
             Stage("boss stage 1", enemy_pool=self.bosses[0], max_enemies=1, score_threshold=None,
-                  bosses_destroyed_threshold=1,
+                  bosses_destroyed_threshold=1, game=self,
                   spawn_interval_modifier=1, enemy_speed_modifier=1, stage_type="boss_stage"),
-            Stage("stage 2", self.enemies[:2], max_enemies=10, score_threshold=6500, bosses_destroyed_threshold=None,
+            Stage("stage 2", self.enemies[:2], max_enemies=10, score_threshold=6500,
+                  bosses_destroyed_threshold=None, game=self,
                   spawn_interval_modifier=0.8, enemy_speed_modifier=1.2),
             Stage("boss stage 2", enemy_pool=self.bosses[1], max_enemies=1, score_threshold=None,
-                  bosses_destroyed_threshold=2,
+                  bosses_destroyed_threshold=2, game=self,
                   spawn_interval_modifier=1, enemy_speed_modifier=1, stage_type="boss_stage"),
-            Stage("stage 3", self.enemies[1:3], max_enemies=13, score_threshold=12000, bosses_destroyed_threshold=None,
+            Stage("stage 3", self.enemies[1:3], max_enemies=13, score_threshold=12000,
+                  bosses_destroyed_threshold=None, game=self,
                   spawn_interval_modifier=0.5, enemy_speed_modifier=1.5),
             Stage("boss stage 3", enemy_pool=self.bosses[2], max_enemies=1, score_threshold=None,
-                  bosses_destroyed_threshold=3,
+                  bosses_destroyed_threshold=3, game=self,
                   spawn_interval_modifier=1, enemy_speed_modifier=1, stage_type="boss_stage"),
-            Stage("stage 4", self.enemies, max_enemies=15, score_threshold=17500, bosses_destroyed_threshold=None,
+            Stage("stage 4", self.enemies, max_enemies=15, score_threshold=17500,
+                  bosses_destroyed_threshold=None, game=self,
                   spawn_interval_modifier=0.5, enemy_speed_modifier=1.5)
             # Add more stages as needed
         ]
@@ -361,25 +399,32 @@ class Game:
     def stage_manager(self):
         current_stage = self.stages[self.stage_index]
 
-        # If it's a regular stage, check score to progress
-        if current_stage.stage_type != "boss_stage":
-            if self.score >= current_stage.score_threshold:
-                self.stage_index += 1
+        # Check if it's time to progress to the next stage
+        if self.should_progress_to_next_stage(current_stage):
+            self.stage_index += 1
+            self.clear_obstacles()
 
-        # If it's a boss stage, check if all enemies are defeated to progress
-        # When the boss is destroyed, open the shop so the player can buy upgrades
-        elif current_stage.stage_type == "boss_stage":
-            if self.bosses_destroyed >= current_stage.bosses_destroyed_threshold:
-
-                if time.time() - self.time_when_last_boss_was_killed > 5:
-                    self.stage_index += 1
-                    # after the boss is killed the player enters the shop
-                    self.change_state("shop")
         # Again, check if we've exceeded the number of stages
         if self.stage_index >= len(self.stages):
             self.stage_index -= 1
 
         self.current_stage = self.stages[self.stage_index]
+
+    def should_progress_to_next_stage(self, current_stage):
+        # If it's a regular stage, check score to progress
+        if current_stage.stage_type != "boss_stage":
+            return self.score >= current_stage.score_threshold
+
+        # If it's a boss stage, check if all enemies are defeated to progress
+        if current_stage.stage_type == "boss_stage":
+            if self.bosses_destroyed >= current_stage.bosses_destroyed_threshold:
+                return time.time() - self.time_when_last_boss_was_killed > 5
+
+        return False
+
+    def clear_obstacles(self):
+        for obstacle in self.obstacles:
+            obstacle.marked_for_death = True
 
     def draw_background(self, window, background_image):
         if background_image is None:
@@ -553,6 +598,8 @@ class Game:
         self.time_since_last_kill = None
         self.game_over_time = None
         self.stage_index = 0
+        for stage in self.stages:
+            stage.obstacles_spawned = False
 
         # 2. Reinitialize the player
         self.player = self.player_template.clone()
@@ -681,7 +728,7 @@ class Game:
 
     def draw_game_over_screen(self):
         font = pygame.font.Font(self.game_font, 64)
-        text_surface = font.render('Game Over, get fucked!', False, (0, 0, 0))
+        text_surface = font.render('Game Over!', False, (0, 0, 0))
         text_rect = text_surface.get_rect(center=(self.window_dimensions[0] // 2, self.window_dimensions[1] // 2))
 
         score_surface = font.render(f"{self.player.name} got {str(self.score)} points!", False, (0, 0, 0))
@@ -693,6 +740,10 @@ class Game:
     def add_figure(self, *figures):
         for figure in figures:
             self.figures.append(figure)
+
+    def add_obstacle(self, *obstacles):
+        for obstacle in obstacles:
+            self.obstacles.append(obstacle)
 
     def add_item_template(self, *items):
         for item in items:
@@ -718,19 +769,19 @@ class Game:
         for enemy in enemies:
             self.enemies.append(enemy)
 
+    def random_pos(self):
+        """Generate a random position inside the screen bounds."""
+        return (random.randint(50, self.window_dimensions[0] - 100),
+                random.randint(50, self.window_dimensions[1] - 100))
+
     def spawn_entity(self, template):
         new_entity = template.clone()
         new_entity.velocity *= self.current_stage.enemy_speed_modifier
 
-        def random_pos():
-            """Generate a random position inside the screen bounds."""
-            return (random.randint(50, self.window_dimensions[0] - 50),
-                    random.randint(50, self.window_dimensions[1] - 50))
-
         # The entities cannot leave the screen (hopefully)
         new_entity.x_limit = self.window_dimensions[0]
         new_entity.y_limit = self.window_dimensions[1]
-        new_entity.override_position(list(random_pos()))
+        new_entity.override_position(list(self.random_pos()))
 
         if len(new_entity.animation) > 1:
             new_entity.animation[1].position = new_entity.position
@@ -771,11 +822,11 @@ class Game:
                     enemy_template = random.choice(self.current_stage.enemy_pool)
                     self.spawn_entity(enemy_template)
 
-    def spawn_obstacles(self):
-        current_obstacle = self.current_stage.obstacles
-        if current_obstacle not in self.figures:
-            self.add_figure(current_obstacle)
-    # spawn the obstacles of the stage
+    def manage_obstacles(self):
+        for obstacle in self.current_stage.manage_obstacles():
+            self.add_obstacle(obstacle)
+        for obstacle in self.obstacles:
+            obstacle.draw_figure(self.window)
 
     def kill_streak_handler(self):
         """count the time since last kill to create a time window in which the next kill needs to be performed to keep
@@ -899,9 +950,12 @@ class Game:
             entity.position[1] = 0
 
     def prevent_clipping(self, threshold=75):
-
-        for i, entity1 in enumerate(self.figures):
-            for j, entity2 in enumerate(self.figures[i + 1:]):
+        # takes the position of entities and prevents them of getting those points closer to each other than the
+        # threshold.
+        # TODO make the threshold depend on the figure size
+        figures_to_check = self.figures + self.obstacles
+        for i, entity1 in enumerate(figures_to_check):
+            for j, entity2 in enumerate(figures_to_check[i + 1:]):
                 x1_pos, y1_pos = entity1.position
                 x2_pos, y2_pos = entity2.position
 
@@ -987,7 +1041,8 @@ class Game:
                         entity2.position[1] += dy * (threshold - distance) / 2
 
     def player_enemy_projectile_collision_handler(self):
-        for figure in self.figures:
+        figures_to_check = self.figures + self.obstacles
+        for figure in figures_to_check:
             for projectile in self.projectiles:
                 # collision between player and enemy projectiles
                 if figure.type_ == "player" and self.player_alive and projectile.type_ in ["enemyprojectile", "boss_enemyprojectile",
@@ -1020,15 +1075,21 @@ class Game:
                     if self.check_collision(figure, projectile):
                         print(f"collision between {figure} and {projectile}")
                         projectile.marked_for_death = True
+
     def remove_dead_figures_and_projectiles(self):
         dead_figures = (figure for figure in self.figures if figure.marked_for_death)
 
         dead_projectiles = (projectile for projectile in self.projectiles if projectile.marked_for_death)
 
+        dead_obstacles = (obstacle for obstacle in self.obstacles if obstacle.marked_for_death)
+
         pick_ups = [figure for figure in self.figures if figure.type_ == "pick_up"]
 
+
+
         for figure in dead_figures:
-            if not figure.type_ == "player":
+            print(f"figure type of dead figures: {figure.type_}")
+            if figure.type_ != "player":
                 if self.debug_mode:
                     self.debug_text_boxes.append(figure.name)
                 if figure.reward:
@@ -1073,6 +1134,9 @@ class Game:
                 self.animations.append(
                     projectile.animation[0].clone())  # explosion of the figure gets added to the scene
             self.projectiles.remove(projectile)
+
+        for obstacle in dead_obstacles:
+            self.obstacles.remove(obstacle)
 
     def collision_check_and_handling(self):
         self.prevent_clipping()
@@ -1396,12 +1460,6 @@ class Game:
                     keys = pygame.key.get_pressed()
                     self.movement_handler(keys, angle=angle_in_degrees)
 
-                    # Spawn enemies periodically
-                    if self.enemies_active:
-                        self.spawn_enemy()
-                    # Spawn Obstacles
-                    self.spawn_obstacles()
-
                     # If player has no energy ammo anymore:
                     if self.player.ammo["energy_ammo"].current_ammo == 0:
                         # Check if there is an existing energy ammo item on the screen
@@ -1478,6 +1536,13 @@ class Game:
 
                 # Draw the game background
                 self.draw_background(self.window, self.background_image)
+
+                # Spawn enemies periodically
+                if self.enemies_active:
+                    self.spawn_enemy()
+
+                # Spawn Obstacles
+                self.manage_obstacles()
 
                 # Draw the player if they are alive
                 if self.player and self.player_alive:
