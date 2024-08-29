@@ -288,7 +288,7 @@ class Game:
 
         # Define stages
         self.stages = [
-            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=200,
+            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=2500,
                   bosses_destroyed_threshold=None, game=self, placement_pattern="two_pillars",
                   spawn_interval_modifier=1, enemy_speed_modifier=1),
             Stage("boss stage 1", enemy_pool=self.bosses[0], max_enemies=1, score_threshold=None,
