@@ -150,9 +150,11 @@ class Stage:
         self.placement_pattern = placement_pattern
         if self.placement_pattern == "two_pillars":
             self.generate_pillar_pattern()
+        elif self.placement_pattern == "center":
+            self.generate_center_pattern()
 
     def generate_pillar_pattern(self):
-
+        # one that fits a multitude of screens
         positions = []
         obstacle_height = self.obstacle.dimensions[1]
 
@@ -172,6 +174,20 @@ class Stage:
             current_y += obstacle_height * 2
 
         self.placement_pattern = positions
+
+    def generate_center_pattern(self):
+
+        # calculate the center of the screen
+        x = self.game.window_dimensions[0] // 2
+        y = self.game.window_dimensions[1] // 2
+
+        pos1 = [x + self.obstacle.dimensions[0], y + self.obstacle.dimensions[1]]
+        pos2 = [x - self.obstacle.dimensions[0], y + self.obstacle.dimensions[1]]
+        pos3 = [x + self.obstacle.dimensions[0], y - self.obstacle.dimensions[1]]
+        pos4 = [x - self.obstacle.dimensions[0], y - self.obstacle.dimensions[1]]
+
+        self.placement_pattern = [pos1, pos2, pos3, pos4]
+
 
     def manage_obstacles(self):
         obstacles = []
@@ -276,7 +292,7 @@ class Game:
                   bosses_destroyed_threshold=None, game=self, placement_pattern="two_pillars",
                   spawn_interval_modifier=1, enemy_speed_modifier=1),
             Stage("boss stage 1", enemy_pool=self.bosses[0], max_enemies=1, score_threshold=None,
-                  bosses_destroyed_threshold=1, game=self,
+                  bosses_destroyed_threshold=1, game=self, placement_pattern="center",
                   spawn_interval_modifier=1, enemy_speed_modifier=1, stage_type="boss_stage"),
             Stage("stage 2", self.enemies[:2], max_enemies=10, score_threshold=6500,
                   bosses_destroyed_threshold=None, game=self,
