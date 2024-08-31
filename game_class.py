@@ -152,6 +152,8 @@ class Stage:
             self.generate_pillar_pattern()
         elif self.placement_pattern == "center":
             self.generate_center_pattern()
+        elif self.placement_pattern == "cross":
+            self.generate_cross_pattern()
 
     def generate_pillar_pattern(self):
         # one that fits a multitude of screens
@@ -188,6 +190,32 @@ class Stage:
 
         self.placement_pattern = [pos1, pos2, pos3, pos4]
 
+    def generate_cross_pattern(self):
+        positions = []
+
+        # Calculate the center of the screen
+        screen_center_x = self.game.window_dimensions[0] // 2
+        screen_center_y = self.game.window_dimensions[1] // 2
+
+        # Calculate the half dimensions of the obstacle
+        obstacle_width = self.obstacle.dimensions[0] * 1.2
+        obstacle_height = self.obstacle.dimensions[1] * 1.2
+
+        # Vertical part of the cross
+        for i in range(-2, 2):  # Adjust the range to fit the desired number of obstacles in the vertical line
+            x_pos = screen_center_x - obstacle_width
+            y_pos = screen_center_y + i * obstacle_height
+            positions.append([x_pos, y_pos])
+        # Horizontal part of the cross
+        for i in range(-2, 3):  # Adjust the range to fit the desired number of obstacles in the horizontal line
+            x_pos = screen_center_x + i * obstacle_width
+            y_pos = screen_center_y - obstacle_height
+            if x_pos != screen_center_x:  # Leave the center open
+                positions.append([x_pos, y_pos])
+
+
+
+        self.placement_pattern = positions
 
     def manage_obstacles(self):
         obstacles = []
@@ -289,13 +317,13 @@ class Game:
         # Define stages
         self.stages = [
             Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=2500,
-                  bosses_destroyed_threshold=None, game=self, placement_pattern="two_pillars",
+                  bosses_destroyed_threshold=None, game=self, placement_pattern="cross",
                   spawn_interval_modifier=1, enemy_speed_modifier=1),
             Stage("boss stage 1", enemy_pool=self.bosses[0], max_enemies=1, score_threshold=None,
                   bosses_destroyed_threshold=1, game=self, placement_pattern="center",
                   spawn_interval_modifier=1, enemy_speed_modifier=1, stage_type="boss_stage"),
             Stage("stage 2", self.enemies[:2], max_enemies=10, score_threshold=6500,
-                  bosses_destroyed_threshold=None, game=self,
+                  bosses_destroyed_threshold=None, game=self, placement_pattern="pillars",
                   spawn_interval_modifier=0.8, enemy_speed_modifier=1.2),
             Stage("boss stage 2", enemy_pool=self.bosses[1], max_enemies=1, score_threshold=None,
                   bosses_destroyed_threshold=2, game=self,
@@ -843,6 +871,9 @@ class Game:
             self.add_obstacle(obstacle)
         for obstacle in self.obstacles:
             obstacle.draw_figure(self.window)
+            if self.debug_mode:
+                obstacle.debug_visuals(self.window, frame=self.frame_counter)
+
 
     def kill_streak_handler(self):
         """count the time since last kill to create a time window in which the next kill needs to be performed to keep
@@ -988,7 +1019,7 @@ class Game:
                     if distance != 0:  # Prevent division by zero
                         dx /= distance
                         dy /= distance
-
+                    # maybe let the obstacles be moveable?
                     # If one entity is an obstacle, only move the non-obstacle entity
                     if entity1.type_ == "obstacle" and entity2.type_ != "obstacle":
                         entity2.position[0] += dx * (threshold - distance)
