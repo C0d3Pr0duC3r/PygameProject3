@@ -133,7 +133,8 @@ class UpgradeButton:
 
 
 class Stage:
-    def __init__(self, name, enemy_pool, max_enemies, score_threshold, bosses_destroyed_threshold, game, boss_spawned=False,
+    def __init__(self, name, enemy_pool, max_enemies, score_threshold, bosses_destroyed_threshold, game,
+                 boss_spawned=False,
                  spawn_interval_modifier=1.0, enemy_speed_modifier=1.0, stage_type="regular", placement_pattern=None):
         self.name = name
         self.enemy_pool = enemy_pool  # List of enemy types available in this stage
@@ -213,8 +214,6 @@ class Stage:
             if x_pos != screen_center_x:  # Leave the center open
                 positions.append([x_pos, y_pos])
 
-
-
         self.placement_pattern = positions
 
     def manage_obstacles(self):
@@ -235,7 +234,7 @@ class Stage:
 class Game:
     def __init__(self, caption, window_dimensions, cursor, player_template=None, enemies=None, bosses=None, fps=60,
                  background_image_path=None, scale_background=True, game_font=None,
-                 player_unkillable=False, debug_mode=False, animation_templates=None):
+                 player_unkillable=False, debug_mode=False, animation_templates=None, screen_scale=None):
 
         self.game_over_time = None
         self.is_running = True
@@ -244,6 +243,9 @@ class Game:
         self.previous_state = "main_menu"
         pygame.display.set_caption(caption)
         self.window_dimensions = window_dimensions
+        self.base_window_dimensions = [2560, 1440]
+        self.object_scale_factor = [self.window_dimensions[0] / self.base_window_dimensions[0],
+                                    self.window_dimensions[1] / self.base_window_dimensions[1]]
         self.player_alive = True
         self.stage_index = 0
         self.game_font = game_font
@@ -874,7 +876,6 @@ class Game:
             if self.debug_mode:
                 obstacle.debug_visuals(self.window, frame=self.frame_counter)
 
-
     def kill_streak_handler(self):
         """count the time since last kill to create a time window in which the next kill needs to be performed to keep
         the streak going. This is then used to determine the bonus points. The streak can go up to a certain number
@@ -1092,8 +1093,9 @@ class Game:
         for figure in figures_to_check:
             for projectile in self.projectiles:
                 # collision between player and enemy projectiles
-                if figure.type_ == "player" and self.player_alive and projectile.type_ in ["enemyprojectile", "boss_enemyprojectile",
-                                                                     "shrapnel"]:
+                if figure.type_ == "player" and self.player_alive and projectile.type_ in ["enemyprojectile",
+                                                                                           "boss_enemyprojectile",
+                                                                                           "shrapnel"]:
                     # Check collision between player and enemy projectiles
                     if self.check_collision(figure, projectile):
                         if not self.player_unkillable:
@@ -1131,8 +1133,6 @@ class Game:
         dead_obstacles = (obstacle for obstacle in self.obstacles if obstacle.marked_for_death)
 
         pick_ups = [figure for figure in self.figures if figure.type_ == "pick_up"]
-
-
 
         for figure in dead_figures:
             print(f"figure type of dead figures: {figure.type_}")
@@ -1706,5 +1706,3 @@ class Game:
             self.cursor.draw_cursor(self.window)
 
         pygame.quit()  # Quit the game when the main loop exits
-
-

@@ -11,6 +11,15 @@ pygame.init()
 pygame.mixer.init()
 pygame.mixer.set_num_channels(32)  # Set to 32 channels
 
+# screen info
+info = pygame.display.Info()
+screen_dimensions = [info.current_w, info.current_h]
+# screen_dimensions = [1280, 720]
+base_window_dimensions = [2560, 1440]
+
+# Calculate the screen scale factor
+rescaling_factor = min(screen_dimensions[0] / base_window_dimensions[0], screen_dimensions[1] / base_window_dimensions[1])
+
 WEAPON_SWITCH_DELAY = 2
 
 AmmoType = namedtuple(typename='AmmoType', field_names=['current_ammo', 'max'])
@@ -171,19 +180,23 @@ portal_opening = Animation(portal_opening_sheet, [4200, 300], 14, 20, [0, 0], na
 
 
 class Sprite_sheet_loader_3d:
-    def __init__(self, sprite_sheet_path, sprite_columns, scale=None):
+    def __init__(self, sprite_sheet_path, sprite_columns, screen_scale=rescaling_factor, scale=1):
         self.sprite_sheet = pygame.image.load(sprite_sheet_path)
         self.sprite_columns = sprite_columns
 
-        if scale:
-            self.scaled_sheet_width = self.sprite_sheet.get_width() * scale
-            self.scaled_sheet_height = self.sprite_sheet.get_height() * scale
-            self.sprite_sheet = pygame.transform.scale(self.sprite_sheet,
-                                                       (self.scaled_sheet_width, self.scaled_sheet_height))
+        # Combine manual scale and screen scale
+        final_scale = screen_scale * scale
 
+        # Apply the combined scale to the sprite sheet
+        self.scaled_sheet_width = int(self.sprite_sheet.get_width() * final_scale)
+        self.scaled_sheet_height = int(self.sprite_sheet.get_height() * final_scale)
+        self.sprite_sheet = pygame.transform.scale(self.sprite_sheet, (self.scaled_sheet_width, self.scaled_sheet_height))
+
+        # Update sprite dimensions based on scaled sheet
         self.sprite_width = self.sprite_sheet.get_width() // self.sprite_columns
         self.sprite_height = self.sprite_sheet.get_height()
-        self.scale = scale
+
+        self.scale = final_scale
         self.step = 360 / self.sprite_columns
         self.oriented_sprites = self._precompute_sprites()
 
@@ -197,11 +210,11 @@ class Sprite_sheet_loader_3d:
         return sprites
 
     def get_oriented_sprite(self, orientation):
-        # Calculate the closest orientation
         closest_orientation = round(orientation / self.step) * self.step % 360
-        # Find the appropriate index for the cached sprite
         index = int(closest_orientation // self.step)
         return self.oriented_sprites[index]
+
+
 
 
 class Figure:
@@ -542,7 +555,6 @@ class Obstacle(Actor):
         super().__init__(*args, **kwargs)
 
 
-
 class Player(Actor):
     def __init__(self, *args, radar_active=False, **kwargs):
         # Call the initialization method of the parent class, Figure
@@ -715,7 +727,7 @@ class Player(Actor):
             if self.shield < self.shield_overcharge:
                 # shield recharge rate is divided by 60 because that should be the frame rate and then
                 # the shield recharge should act like a per second regeneration
-                modified_recharge_rate = self.shield_recharge_rate/60 * (1 - (self.shield / self.shield_cap))
+                modified_recharge_rate = self.shield_recharge_rate / 60 * (1 - (self.shield / self.shield_cap))
                 self.shield += modified_recharge_rate
         if self.hit_points > self.hit_point_overcharge:
             self.hit_points -= 3 / 60
@@ -1020,8 +1032,6 @@ class BossNPC(NPC):
         cloned_boss.sound_effects = self.sound_effects
 
         return cloned_boss
-
-
 
 
 class Projectile(Actor):
