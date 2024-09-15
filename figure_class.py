@@ -180,12 +180,13 @@ portal_opening = Animation(portal_opening_sheet, [4200, 300], 14, 20, [0, 0], na
 
 
 class Sprite_sheet_loader_3d:
-    def __init__(self, sprite_sheet_path, sprite_columns, screen_scale=rescaling_factor, scale=1):
+    def __init__(self, sprite_sheet_path, sprite_columns, scale=1, rescaling_factor=rescaling_factor):
         self.sprite_sheet = pygame.image.load(sprite_sheet_path)
         self.sprite_columns = sprite_columns
+        self.scale = scale
 
         # Combine manual scale and screen scale
-        final_scale = screen_scale * scale
+        final_scale = rescaling_factor * self.scale
 
         # Apply the combined scale to the sprite sheet
         self.scaled_sheet_width = int(self.sprite_sheet.get_width() * final_scale)
@@ -1757,7 +1758,7 @@ add_projectile_upgrade = Upgrade("add projectile", "adds an additional projectil
 
 player = Player(name="player", position=[300, 300], hit_points=100, shield=0, shield_cap=150, shield_overcharge=100,
                 hit_points_cap=200, hit_point_overcharge=120,
-                sprite_loader=Sprite_sheet_loader_3d(player_model, 100, 0.7), shield_recharge_rate=10,
+                sprite_loader=Sprite_sheet_loader_3d(player_model, 100, 1), shield_recharge_rate=10,
                 turn_speed=5, max_velocity=10, acceleration=2, x_limit=500, y_limit=500, type_="player",
                 sound_effects=player_sounds,
                 coins=0,
