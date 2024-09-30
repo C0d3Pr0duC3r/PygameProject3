@@ -186,18 +186,18 @@ class Sprite_sheet_loader_3d:
         self.scale = scale
 
         # Combine manual scale and screen scale
-        final_scale = rescaling_factor * self.scale
+        # final_scale = rescaling_factor * self.scale
 
-        # Apply the combined scale to the sprite sheet
-        self.scaled_sheet_width = int(self.sprite_sheet.get_width() * final_scale)
-        self.scaled_sheet_height = int(self.sprite_sheet.get_height() * final_scale)
+        # Apply the scale to the sprite sheet
+        self.scaled_sheet_width = int(self.sprite_sheet.get_width() * self.scale)
+        self.scaled_sheet_height = int(self.sprite_sheet.get_height() * self.scale)
         self.sprite_sheet = pygame.transform.scale(self.sprite_sheet, (self.scaled_sheet_width, self.scaled_sheet_height))
 
         # Update sprite dimensions based on scaled sheet
         self.sprite_width = self.sprite_sheet.get_width() // self.sprite_columns
         self.sprite_height = self.sprite_sheet.get_height()
 
-        self.scale = final_scale
+        # self.scale = final_scale
         self.step = 360 / self.sprite_columns
         self.oriented_sprites = self._precompute_sprites()
 
@@ -269,8 +269,8 @@ class Figure:
     def return_dimensions_and_position(self):
         # the // operation ensures, that the center of the rect is used as position of the object
         dimensions = (
-            self.position[0] - self.dimensions[0] // 2, self.position[1] - self.dimensions[1] // 2, self.dimensions[0],
-            self.dimensions[1])
+            self.position[0] - self.dimensions[0] // 2, self.position[1] - self.dimensions[1] // 2, self.dimensions[0]*rescaling_factor,
+            self.dimensions[1]*rescaling_factor)
         return dimensions
 
     # method for player and npcs as well as projectiles that spawn "shrapnel"
@@ -1758,7 +1758,7 @@ add_projectile_upgrade = Upgrade("add projectile", "adds an additional projectil
 
 player = Player(name="player", position=[300, 300], hit_points=100, shield=0, shield_cap=150, shield_overcharge=100,
                 hit_points_cap=200, hit_point_overcharge=120,
-                sprite_loader=Sprite_sheet_loader_3d(player_model, 100, 1), shield_recharge_rate=10,
+                sprite_loader=Sprite_sheet_loader_3d(player_model, 100, 0.8), shield_recharge_rate=10,
                 turn_speed=5, max_velocity=10, acceleration=2, x_limit=500, y_limit=500, type_="player",
                 sound_effects=player_sounds,
                 coins=0,

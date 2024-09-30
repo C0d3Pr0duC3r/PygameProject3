@@ -198,17 +198,19 @@ class Stage:
         screen_center_x = self.game.window_dimensions[0] // 2
         screen_center_y = self.game.window_dimensions[1] // 2
 
+        positions.append([screen_center_x, screen_center_y])
+
         # Calculate the half dimensions of the obstacle
-        obstacle_width = self.obstacle.dimensions[0] * 1.2
-        obstacle_height = self.obstacle.dimensions[1] * 1.2
+        obstacle_width = self.obstacle.dimensions[0] * 1.1
+        obstacle_height = self.obstacle.dimensions[1] * 1.1
 
         # Vertical part of the cross
-        for i in range(-2, 2):  # Adjust the range to fit the desired number of obstacles in the vertical line
+        for i in range(-1, 1):  # Adjust the range to fit the desired number of obstacles in the vertical line
             x_pos = screen_center_x - obstacle_width
             y_pos = screen_center_y + i * obstacle_height
             positions.append([x_pos, y_pos])
         # Horizontal part of the cross
-        for i in range(-2, 3):  # Adjust the range to fit the desired number of obstacles in the horizontal line
+        for i in range(-1, 1):  # Adjust the range to fit the desired number of obstacles in the horizontal line
             x_pos = screen_center_x + i * obstacle_width
             y_pos = screen_center_y - obstacle_height
             if x_pos != screen_center_x:  # Leave the center open
