@@ -19,7 +19,7 @@ base_window_dimensions = [2560, 1440]
 
 # Calculate the screen scale factor
 rescaling_factor = min(screen_dimensions[0] / base_window_dimensions[0], screen_dimensions[1] / base_window_dimensions[1])
-
+print(f"rescaling factor: {rescaling_factor}")
 WEAPON_SWITCH_DELAY = 2
 
 AmmoType = namedtuple(typename='AmmoType', field_names=['current_ammo', 'max'])
@@ -186,11 +186,11 @@ class Sprite_sheet_loader_3d:
         self.scale = scale
 
         # Combine manual scale and screen scale
-        # final_scale = rescaling_factor * self.scale
+        final_scale = rescaling_factor * self.scale
 
         # Apply the scale to the sprite sheet
-        self.scaled_sheet_width = int(self.sprite_sheet.get_width() * self.scale)
-        self.scaled_sheet_height = int(self.sprite_sheet.get_height() * self.scale)
+        self.scaled_sheet_width = int(self.sprite_sheet.get_width() * final_scale)
+        self.scaled_sheet_height = int(self.sprite_sheet.get_height() * final_scale)
         self.sprite_sheet = pygame.transform.scale(self.sprite_sheet, (self.scaled_sheet_width, self.scaled_sheet_height))
 
         # Update sprite dimensions based on scaled sheet
@@ -1812,28 +1812,28 @@ missile_mogus = BossNPC(name="missile_mogus", type_="boss_enemy", position=[50, 
 # ===============================
 
 healing_item_template = Item(name="Health_pick up", type_="pick_up", position=[100, 100],
-                             sprite_loader=Sprite_sheet_loader_3d(health_pick_up_path, 100, scale=0.3),
+                             sprite_loader=Sprite_sheet_loader_3d(health_pick_up_path, 100, scale=0.4),
                              pick_up_distance=50,
                              effect_function=Item.heal_target,
                              turn_speed=5,
                              chance=3)
 
 omega_health_template = Item(name="Omega Health_pick up", type_="pick_up", position=[100, 100],
-                             sprite_loader=Sprite_sheet_loader_3d(omega_health_model, 100, 0.5),
+                             sprite_loader=Sprite_sheet_loader_3d(omega_health_model, 100, 0.4),
                              pick_up_distance=50,
                              effect_function=Item.super_heal_target,
                              turn_speed=5,
                              chance=5)
 
 coin_item_template = Item(name="Coin_pick up", type_="pick_up", position=[100, 100],
-                          sprite_loader=Sprite_sheet_loader_3d(coin_model, 100, scale=0.3),
+                          sprite_loader=Sprite_sheet_loader_3d(coin_model, 99, scale=0.4),
                           pick_up_distance=50,
                           effect_function=Item.give_coin,
                           turn_speed=5,
                           chance=1)
 
 shield_item_template = Item(name="Shield_pick up", type_="pick_up", position=[100, 100],
-                            sprite_loader=Sprite_sheet_loader_3d(shield_model, 100, scale=0.3),
+                            sprite_loader=Sprite_sheet_loader_3d(shield_model, 100, scale=0.4),
                             pick_up_distance=50,
                             effect_function=Item.shield_target,
                             turn_speed=5,
@@ -2067,7 +2067,7 @@ enemy_missile_launcher = HomingWeapon("homing_enemy_missile", damage=80, project
 # adding stuff to figures
 # ===============================
 
-player.add_weapon(basic_blaster, spreader)
+player.add_weapon(basic_blaster, debug_gun)
 #player.coins = 1000
 
 scout_enemy.add_weapon(enemy_blaster)
