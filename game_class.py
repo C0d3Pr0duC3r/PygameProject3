@@ -155,6 +155,8 @@ class Stage:
             self.generate_center_pattern()
         elif self.placement_pattern == "cross":
             self.generate_cross_pattern()
+        else:
+            self.placement_pattern = None
 
     def generate_pillar_pattern(self):
         # one that fits a multitude of screens
@@ -320,14 +322,14 @@ class Game:
 
         # Define stages
         self.stages = [
-            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=2500,
+            Stage("stage 1", enemy_pool=self.enemies[:1], max_enemies=10, score_threshold=250,
                   bosses_destroyed_threshold=None, game=self, placement_pattern="cross",
                   spawn_interval_modifier=1, enemy_speed_modifier=1),
             Stage("boss stage 1", enemy_pool=self.bosses[0], max_enemies=1, score_threshold=None,
                   bosses_destroyed_threshold=1, game=self, placement_pattern="center",
                   spawn_interval_modifier=1, enemy_speed_modifier=1, stage_type="boss_stage"),
             Stage("stage 2", self.enemies[:2], max_enemies=10, score_threshold=6500,
-                  bosses_destroyed_threshold=None, game=self, placement_pattern="pillars",
+                  bosses_destroyed_threshold=None, game=self, placement_pattern="two_pillars",
                   spawn_interval_modifier=0.8, enemy_speed_modifier=1.2),
             Stage("boss stage 2", enemy_pool=self.bosses[1], max_enemies=1, score_threshold=None,
                   bosses_destroyed_threshold=2, game=self,
