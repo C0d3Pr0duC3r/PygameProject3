@@ -1238,7 +1238,10 @@ class Game:
     def handle_fire_effects(self, character, angle=None):
         if angle is not None:  # If an angle is provided (for the player)
             character.orientation = angle
+        """this is where the shooting happens"""
         projectiles, muzzle_flash = character.trigger_pull()
+        if isinstance(character, BossNPC):
+            character.attack_indication(self.window)
         """we are creating a list of projectiles, so that if we use a "shotgun", that spawns multiple projectiles we can
          handle it with the already implemented functions. Muzzle_flash should be always one so far, so no list"""
         if projectiles is not None:
@@ -1276,7 +1279,6 @@ class Game:
                     # Check if current weapon is overheated
                     if current_weapon.heat >= current_weapon.max_heat - 0.5:
                         npc.change_weapon()
-
                     self.handle_fire_effects(npc)
 
                     npc.apply_thrust("prograde", "strafe")

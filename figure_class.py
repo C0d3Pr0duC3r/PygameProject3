@@ -1034,6 +1034,24 @@ class BossNPC(NPC):
 
         return cloned_boss
 
+    def attack_indication(self, window):
+        # Umwandeln des Winkels in Radiant
+        angle_radians = math.radians(self.orientation - 90)
+
+        # Berechnung des Richtungsvektors
+        direction_x = math.cos(angle_radians)
+        direction_y = math.sin(angle_radians)
+
+        # Skalieren des Richtungsvektors auf 100 Pixel
+        length = 100
+        end_x = int(self.position[0] + direction_x * length)
+        end_y = int(self.position[1] + direction_y * length)
+
+        # Zeichne die rote Linie
+        pygame.draw.line(window, (255, 0, 0), (int(self.position[0]), int(self.position[1])), (end_x, end_y), 2)
+
+    """a Method that shows the boss enemy is aiming and about to shoot"""
+
 
 class Projectile(Actor):
     def __init__(self, name, damage, orientation, velocity, position, life_time=None, sprite_loader=None,
